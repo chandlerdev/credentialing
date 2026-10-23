@@ -55,7 +55,9 @@ import static com.zmartcredential.service.EnrollmentSupport.blankToNull;
 @RequiredArgsConstructor
 public class EnrollmentService {
 
-    public static final Set<String> FILE_TYPES = Set.of("welcome_letter", "application_form", "contract", "other");
+    public static final Set<String> FILE_TYPES = Set.of("welcome_letter", "application_form", "contract", "acknowledgement", "other");
+    /** the acknowledgement / approval certificate: PDF, Word, JPG or PNG (as provider documents) */
+    private static final Set<String> ACK_EXTENSIONS = Set.of("pdf", "doc", "docx", "jpg", "jpeg", "png");
     private static final Set<String> CLOSED_STATUSES = Set.of("approved", "terminated");
 
     private final EnrollmentRepository enrollmentRepository;
@@ -295,7 +297,13 @@ public class EnrollmentService {
         Enrollment e = load(id, orgId);
         String type = fileType == null || fileType.isBlank() ? "other" : fileType.trim();
         if (!FILE_TYPES.contains(type)) {
-            throw new BadRequestException("File type must be welcome_letter, application_form, contract or other");
+            throw new BadRequestException("File type must be welcome_letter, application_form, contract, acknowledgement or other");
+        }
+        if ("acknowledgement".equals(type)) {
+            if (!"approved".equals(e.getStatus())) throw new BadRequestException("The acknowledgement can be uploaded once the enrollment is approved");
+            String n = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+            String ext = n.contains(".") ? n.substring(n.lastIndexOf('.') + 1) : "";
+            if (!ACK_EXTENSIONS.contains(ext)) throw new BadRequestException("Only PDF, Word, JPG or PNG files can be uploaded");
         }
         String key = storage.store(orgId, file);
         EnrollmentFile f = new EnrollmentFile();
@@ -310,6 +318,22 @@ public class EnrollmentService {
         f.setUploadedBy(authContext.userId());
         f = fileRepository.save(f);
         return toFileResponse(f, Map.of(authContext.userId(), support.actorLabel()));
+    }
+
+    /** Staff notes on an enrollment (the payer's answers by phone / email, why it is pending). */
+    @Transactional
+    public EnrollmentResponse saveNotes(Long id, String notes) {
+        permissionService.require("enrollment", "update");
+        authContext.requireStaff();
+        Enrollment e = load(id, authContext.orgId());
+        String value = notes == null || notes.isBlank() ? null : notes.strip();
+        if (!Objects.equals(value, e.getNotes())) {
+            e.setNotes(value);
+            e.setNotesUpdatedAt(LocalDateTime.now());
+            e.setNotesUpdatedBy(EnrollmentSupport.truncate(support.actorLabel(), 120));
+            e = enrollmentRepository.save(e);
+        }
+        return toResponse(e);
     }
 
     public record FileDownload(Resource resource, String name, String mimeType) {
@@ -500,8 +524,16 @@ public class EnrollmentService {
     public List<EnrollmentResponse> toResponses(Collection<Enrollment> list, Ctx ctx) {
         if (list.isEmpty()) return List.of();
         List<Long> ids = list.stream().map(Enrollment::getId).toList();
-        Map<Long, Long> fileCounts = fileRepository.findByEnrollmentIdIn(ids).stream()
+        List<EnrollmentFile> allFiles = fileRepository.findByEnrollmentIdIn(ids);
+        Map<Long, Long> fileCounts = allFiles.stream()
                 .collect(Collectors.groupingBy(EnrollmentFile::getEnrollmentId, Collectors.counting()));
+        // the latest acknowledgement file of each enrollment
+        Map<Long, EnrollmentFile> acks = new java.util.HashMap<>();
+        for (EnrollmentFile f : allFiles) {
+            if (!"acknowledgement".equals(f.getFileType()) || f.getStorageKey() == null) continue;
+            EnrollmentFile cur = acks.get(f.getEnrollmentId());
+            if (cur == null || (f.getUploadedAt() != null && (cur.getUploadedAt() == null || f.getUploadedAt().isAfter(cur.getUploadedAt())))) acks.put(f.getEnrollmentId(), f);
+        }
         Map<Long, List<EnrollmentEvent>> events = eventRepository.findByEnrollmentIdIn(ids).stream()
                 .collect(Collectors.groupingBy(EnrollmentEvent::getEnrollmentId));
         return list.stream().map(e -> {
@@ -518,7 +550,10 @@ public class EnrollmentService {
                     EnrollmentSupport.tat(e.getSubmittedDate(), e.getEffectiveDate()), e.getNotes(),
                     e.getAssignedUserId(), e.getAssignedUserId() == null ? null : ctx.users().get(e.getAssignedUserId()),
                     fileCounts.getOrDefault(e.getId(), 0L).intValue(), evs.size(), last, e.getCreatedAt(), e.getUpdatedAt(),
-                    e.getFollowUpDate(), e.getEstApprovedDate());
+                    e.getFollowUpDate(), e.getEstApprovedDate(), e.getNotesUpdatedAt(), e.getNotesUpdatedBy(),
+                    acks.containsKey(e.getId()) ? acks.get(e.getId()).getId() : null,
+                    acks.containsKey(e.getId()) ? acks.get(e.getId()).getName() : null,
+                    acks.containsKey(e.getId()) ? acks.get(e.getId()).getMimeType() : null);
         }).toList();
     }
 

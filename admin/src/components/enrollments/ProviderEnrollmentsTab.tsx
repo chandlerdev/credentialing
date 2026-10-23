@@ -36,9 +36,10 @@ const FILE_TYPE_LABEL: Record<EnrollmentFileType, string> = {
   welcome_letter: "Welcome Letter",
   application_form: "Application Form",
   contract: "Contract",
+  acknowledgement: "Acknowledgement",
   other: "Other",
 };
-const FILE_TYPE_PILL: Record<EnrollmentFileType, string> = { welcome_letter: "success", application_form: "accent", contract: "info", other: "neutral" };
+const FILE_TYPE_PILL: Record<EnrollmentFileType, string> = { welcome_letter: "success", application_form: "accent", contract: "info", acknowledgement: "success", other: "neutral" };
 
 const EVENT_META: Record<string, { label: string; icon: string; color: string }> = {
   created: { label: "Created", icon: "FilePlus", color: "var(--ink-light)" },

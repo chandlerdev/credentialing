@@ -51,6 +51,11 @@ public class Enrollment {
 
     private String notes;
 
+    /** when the notes were last changed, and by whom (display name) */
+    private java.time.LocalDateTime notesUpdatedAt;
+
+    private String notesUpdatedBy;
+
     private Long assignedUserId;
 
     @Column(name = "is_test_data")

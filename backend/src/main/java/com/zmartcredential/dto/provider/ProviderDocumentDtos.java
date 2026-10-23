@@ -18,7 +18,12 @@ public final class ProviderDocumentDtos {
             Long id, Long providerId, String docType, String label, boolean critical, boolean expires,
             Integer sortOrder, String status, String fileName, String mimeType, Long sizeBytes,
             String originalRelativePath, LocalDate expiresAt, Long daysUntilExpiry,
-            LocalDateTime uploadedAt, boolean hasFile) {
+            LocalDateTime uploadedAt, boolean hasFile,
+            String notes, LocalDateTime notesUpdatedAt, String notesUpdatedBy) {
+    }
+
+    /** Staff notes on a document or enrollment (empty clears them). */
+    public record NotesRequest(@Size(max = 5000, message = "Notes can be at most 5000 characters") String notes) {
     }
 
     /** Per-file outcome of an upload. classification: manual (docType given) | filename (guessed). */

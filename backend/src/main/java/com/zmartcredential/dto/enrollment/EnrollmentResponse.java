@@ -29,5 +29,11 @@ public record EnrollmentResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         LocalDate followUpDate,
-        LocalDate estApprovedDate) {
+        LocalDate estApprovedDate,
+        LocalDateTime notesUpdatedAt,
+        String notesUpdatedBy,
+        /* the payer's acknowledgement / approval certificate (latest 'acknowledgement' file) */
+        Long acknowledgementFileId,
+        String acknowledgementFileName,
+        String acknowledgementMimeType) {
 }

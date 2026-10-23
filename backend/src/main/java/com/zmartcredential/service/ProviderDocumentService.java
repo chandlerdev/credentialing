@@ -219,6 +219,27 @@ public class ProviderDocumentService {
         return support.toRow(d, support.docTypes().get(d.getDocType()));
     }
 
+    /** Staff notes on a document (why it is pending / on hold, what the provider said). */
+    @Transactional
+    public ProviderDocumentRow saveNotes(Long docId, String notes) {
+        permissionService.require("document", "update");
+        authContext.requireStaff();
+        ProviderDocument d = loadDoc(docId);
+        String value = notes == null || notes.isBlank() ? null : notes.strip();
+        if (!Objects.equals(value, d.getNotes())) {
+            d.setNotes(value);
+            d.setNotesUpdatedAt(LocalDateTime.now());
+            d.setNotesUpdatedBy(actorName(authContext.principal()));
+            documentRepository.save(d);
+        }
+        return support.toRow(d, support.docTypes().get(d.getDocType()));
+    }
+
+    static String actorName(AuthPrincipal p) {
+        String n = p.displayName() != null && !p.displayName().isBlank() ? p.displayName() : p.username();
+        return n == null ? null : n.length() > 120 ? n.substring(0, 120) : n;
+    }
+
     @Transactional(readOnly = true)
     public DownloadedFile download(Long docId) {
         // a provider can always open their own files (loadDoc only finds their own documents)

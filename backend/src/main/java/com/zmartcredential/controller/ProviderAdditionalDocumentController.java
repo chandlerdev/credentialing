@@ -58,6 +58,12 @@ public class ProviderAdditionalDocumentController {
     }
 
     @Operation(summary = "Remove an extra document (staff)")
+    @PutMapping("/api/additional-documents/{id:\\d+}/notes")
+    public AdditionalDocumentItem notes(@PathVariable Long id,
+                                        @Valid @RequestBody com.zmartcredential.dto.provider.ProviderDocumentDtos.NotesRequest req) {
+        return service.saveNotes(id, req.notes());
+    }
+
     @DeleteMapping("/api/additional-documents/{id:\\d+}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {

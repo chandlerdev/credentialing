@@ -22,6 +22,12 @@ export interface Enrollment {
   effectiveDate: string | null;
   followUpDate?: string | null;
   estApprovedDate?: string | null;
+  notesUpdatedAt?: string | null;
+  notesUpdatedBy?: string | null;
+  /** the payer's acknowledgement / approval certificate (approved enrollments) */
+  acknowledgementFileId?: number | null;
+  acknowledgementFileName?: string | null;
+  acknowledgementMimeType?: string | null;
   tatDays: number | null;
   notes: string | null;
   assignedUserId: number | null;
@@ -33,7 +39,7 @@ export interface Enrollment {
   updatedAt: string;
 }
 
-export type EnrollmentFileType = "welcome_letter" | "application_form" | "contract" | "other";
+export type EnrollmentFileType = "welcome_letter" | "application_form" | "contract" | "acknowledgement" | "other";
 
 export interface EnrollmentFile {
   id: number;

@@ -46,6 +46,14 @@ public class ProviderDocument {
 
     private Long uploadedBy;
 
+    /** staff notes: why the document is pending / on hold, what was agreed by phone or email */
+    private String notes;
+
+    /** when the notes were last changed, and by whom (display name) */
+    private java.time.LocalDateTime notesUpdatedAt;
+
+    private String notesUpdatedBy;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

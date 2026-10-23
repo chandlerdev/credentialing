@@ -9,6 +9,8 @@ import { ConfirmDialog } from "@/components/Modal";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState, Loading } from "@/components/AsyncState";
 import { Icon } from "@/components/Icon";
+import { NotesCell } from "@/components/NotesCell";
+import { AcknowledgementCell } from "./AcknowledgementCell";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { StatusPill } from "@/components/Pill";
@@ -135,7 +137,7 @@ export function EnrollmentsView() {
             <EmptyState icon="ClipboardList" title="No enrollments match" />
           ) : (
             <>
-              <div className="table-scroll">
+              <div className="table-scroll overflow-x-auto">
                 <table>
                   <thead>
                     <tr>
@@ -145,6 +147,8 @@ export function EnrollmentsView() {
                       <th>Submitted</th>
                       <th>Approved</th>
                       <th>TAT</th>
+                      <th>Notes</th>
+                      <th>Acknowledgement</th>
                       <th className="text-right">Actions</th>
                     </tr>
                   </thead>
@@ -169,6 +173,20 @@ export function EnrollmentsView() {
                         <td className="text-xs text-ink-light">{e.submittedDate ? fmtDate(e.submittedDate) : "—"}</td>
                         <td className="text-xs text-ink-light">{e.effectiveDate ? fmtDate(e.effectiveDate) : "—"}</td>
                         <td className="font-mono text-xs">{e.tatDays ? e.tatDays + "d" : "—"}</td>
+                        <td>
+                          <NotesCell<Enrollment>
+                            notes={e.notes}
+                            updatedAt={e.notesUpdatedAt}
+                            updatedBy={e.notesUpdatedBy}
+                            path={"/enrollments/" + e.id + "/notes"}
+                            title={"Notes · " + e.providerName + " → " + (e.payerName || "")}
+                            canEdit={can("update", "enrollment")}
+                            onSaved={list.reload}
+                          />
+                        </td>
+                        <td>
+                          <AcknowledgementCell enrollment={e} canUpload={can("update", "enrollment")} onUploaded={list.reload} />
+                        </td>
                         <td className="text-right" style={{ whiteSpace: "nowrap" }}>
                           {can("update", "enrollment") && (
                             <button

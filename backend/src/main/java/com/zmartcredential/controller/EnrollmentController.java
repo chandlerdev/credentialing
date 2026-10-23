@@ -137,9 +137,16 @@ public class EnrollmentController {
         return enrollmentService.uploadFile(id, file, fileType);
     }
 
-    @Operation(summary = "Download an enrollment file")
+    @Operation(summary = "Save the staff notes of an enrollment")
+    @PutMapping("/api/enrollments/{id}/notes")
+    public EnrollmentResponse notes(@PathVariable Long id,
+                                    @jakarta.validation.Valid @RequestBody com.zmartcredential.dto.provider.ProviderDocumentDtos.NotesRequest req) {
+        return enrollmentService.saveNotes(id, req.notes());
+    }
+
+    @Operation(summary = "Download an enrollment file (inline=true to view it in the browser)")
     @GetMapping("/api/enrollment-files/{fileId}/download")
-    public ResponseEntity<Resource> download(@PathVariable Long fileId) {
+    public ResponseEntity<Resource> download(@PathVariable Long fileId, @RequestParam(defaultValue = "false") boolean inline) {
         EnrollmentService.FileDownload d = enrollmentService.download(fileId);
         MediaType type;
         try {
@@ -150,7 +157,7 @@ public class EnrollmentController {
         return ResponseEntity.ok()
                 .contentType(type)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(d.name(), StandardCharsets.UTF_8).build().toString())
+                        (inline ? ContentDisposition.inline() : ContentDisposition.attachment()).filename(d.name(), StandardCharsets.UTF_8).build().toString())
                 .body(d.resource());
     }
 

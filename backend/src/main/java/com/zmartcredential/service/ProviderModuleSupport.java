@@ -115,7 +115,8 @@ public class ProviderModuleSupport {
                 t != null && Boolean.TRUE.equals(t.getExpires()),
                 t == null ? null : t.getSortOrder(),
                 effectiveStatus(d), d.getFileName(), d.getMimeType(), d.getSizeBytes(), d.getOriginalRelativePath(),
-                d.getExpiresAt(), days, d.getUploadedAt(), d.getStorageKey() != null);
+                d.getExpiresAt(), days, d.getUploadedAt(), d.getStorageKey() != null,
+                d.getNotes(), d.getNotesUpdatedAt(), d.getNotesUpdatedBy());
     }
 
     public ProviderDocProgress progress(Collection<ProviderDocument> docs, Map<String, DocumentType> types) {

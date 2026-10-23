@@ -32,6 +32,8 @@ export interface AdditionalDocument {
   sizeBytes: number | null;
   status: string;
   uploadedAt: string;
+  notesUpdatedAt?: string | null;
+  notesUpdatedBy?: string | null;
 }
 
 export interface DocumentRow {
@@ -51,6 +53,10 @@ export interface DocumentRow {
   daysUntilExpiry: number | null;
   uploadedAt: string | null;
   hasFile: boolean;
+  /** staff notes: why the document is pending / on hold */
+  notes?: string | null;
+  notesUpdatedAt?: string | null;
+  notesUpdatedBy?: string | null;
   /** an additional document the provider added (My Documents → Add More Document) */
   extra?: boolean;
 }

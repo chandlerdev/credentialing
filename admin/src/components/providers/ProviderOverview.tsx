@@ -9,6 +9,7 @@ import { DocStatusBadge, Pill } from "@/components/Pill";
 import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { Icon } from "@/components/Icon";
+import { NotesCell } from "@/components/NotesCell";
 import { useShell } from "@/stores/shell";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { useAuth } from "@/stores/auth";
@@ -37,6 +38,9 @@ const extraRow = (x: AdditionalDocument): DocumentRow => ({
   daysUntilExpiry: daysFromNow(x.expiresAt),
   uploadedAt: x.uploadedAt,
   hasFile: true,
+  notes: x.notes,
+  notesUpdatedAt: x.notesUpdatedAt,
+  notesUpdatedBy: x.notesUpdatedBy,
   extra: true,
 });
 
@@ -54,7 +58,8 @@ const PSV_CHECKS: { source: VerificationSource; icon: string; iconColor: string;
 
 /** Prototype ProviderOverview (L1871): documents, document details, PSV and credentials. */
 export function ProviderOverview({ provider, onChanged }: { provider: ProviderDetail; onChanged: () => void }) {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
+  const canNote = user?.role !== "provider" && can("update", "document");
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const extras = useAsync(() => api.get<AdditionalDocument[]>("/providers/" + provider.id + "/additional-documents"), [provider.id]);
   const extraDocs = (extras.data || []).map(extraRow);
@@ -69,7 +74,7 @@ export function ProviderOverview({ provider, onChanged }: { provider: ProviderDe
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       {/* Provider Documents */}
-      <div className="lg:col-span-3 card overflow-hidden">
+      <div className="lg:col-span-3 card overflow-hidden min-w-0">
         <div className="flex items-center justify-between p-5 pb-3 border-b border-line flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Icon name="FileText" size={16} style={{ color: "var(--accent)" }} />
@@ -82,7 +87,7 @@ export function ProviderOverview({ provider, onChanged }: { provider: ProviderDe
             </Link>
           )}
         </div>
-        <div className="table-scroll">
+        <div className="table-scroll overflow-x-auto">
           <table>
             <thead>
               <tr>
@@ -90,6 +95,7 @@ export function ProviderOverview({ provider, onChanged }: { provider: ProviderDe
                 <th>Expiration</th>
                 <th>Mandatory</th>
                 <th>Status</th>
+                <th>Notes</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -103,7 +109,7 @@ export function ProviderOverview({ provider, onChanged }: { provider: ProviderDe
                   <Fragment key={key}>
                     {doc.extra && !docs[i - 1]?.extra && (
                       <tr className="no-hover">
-                        <td colSpan={5} style={{ background: "var(--bg-soft)" }}>
+                        <td colSpan={6} style={{ background: "var(--bg-soft)" }}>
                           <div className="flex items-center gap-2 text-xs font-semibold text-ink">
                             <Icon name="FilePlus" size={13} className="text-accent" /> Additional Documents
                             <span className="font-normal text-ink-faint">added by the provider</span>
@@ -125,6 +131,19 @@ export function ProviderOverview({ provider, onChanged }: { provider: ProviderDe
                       </td>
                       <td>
                         <DocStatusBadge status={doc.status} />
+                      </td>
+                      <td>
+                        <NotesCell<DocumentRow>
+                          notes={doc.notes}
+                          updatedAt={doc.notesUpdatedAt}
+                          updatedBy={doc.notesUpdatedBy}
+                          path={docPath(doc) + "/notes"}
+                          title={"Notes · " + doc.label}
+                          subtitle={provider.firstName + " " + provider.lastName}
+                          canEdit={canNote}
+                          onSaved={changed}
+                          compact
+                        />
                       </td>
                       <td className="text-right">
                         <button
@@ -151,7 +170,7 @@ export function ProviderOverview({ provider, onChanged }: { provider: ProviderDe
       </div>
 
       {/* Right column: Document details + PSV + Credentials */}
-      <div className="lg:col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-4 min-w-0">
         <div className="card">
           <div className="p-5 pb-3 border-b border-line">
             <div className="flex items-center gap-2">

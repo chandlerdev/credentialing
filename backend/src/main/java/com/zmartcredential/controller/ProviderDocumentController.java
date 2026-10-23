@@ -72,6 +72,13 @@ public class ProviderDocumentController {
         return documentService.patch(docId, req);
     }
 
+    @Operation(summary = "Save the staff notes of a document")
+    @org.springframework.web.bind.annotation.PutMapping("/api/documents/{docId:\\d+}/notes")
+    public ProviderDocumentRow notes(@PathVariable Long docId,
+                                     @Valid @RequestBody com.zmartcredential.dto.provider.ProviderDocumentDtos.NotesRequest req) {
+        return documentService.saveNotes(docId, req.notes());
+    }
+
     @Operation(summary = "Download the stored file of a document")
     @GetMapping("/api/documents/{docId:\\d+}/download")
     public ResponseEntity<Resource> download(@PathVariable Long docId,

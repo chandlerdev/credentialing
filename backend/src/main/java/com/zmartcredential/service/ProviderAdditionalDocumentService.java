@@ -46,7 +46,8 @@ public class ProviderAdditionalDocumentService {
 
     public record AdditionalDocumentItem(Long id, Long providerId, String docType, String docTypeLabel, String title,
                                          String notes, LocalDate expiresAt, String fileName, String mimeType, Long sizeBytes,
-                                         String status, LocalDateTime uploadedAt) {
+                                         String status, LocalDateTime uploadedAt, LocalDateTime notesUpdatedAt,
+                                         String notesUpdatedBy) {
     }
 
     @Transactional(readOnly = true)
@@ -156,6 +157,22 @@ public class ProviderAdditionalDocumentService {
         return toItem(repository.save(d), support.docTypes());
     }
 
+    /** Staff notes on an additional document. */
+    @Transactional
+    public AdditionalDocumentItem saveNotes(Long id, String notes) {
+        permissionService.require("document", "update");
+        authContext.requireStaff();
+        ProviderAdditionalDocument d = loadForStaff(id);
+        String value = notes == null || notes.isBlank() ? null : notes.strip();
+        if (!java.util.Objects.equals(value, d.getNotes())) {
+            d.setNotes(value);
+            d.setNotesUpdatedAt(LocalDateTime.now());
+            d.setNotesUpdatedBy(ProviderDocumentService.actorName(authContext.principal()));
+            repository.save(d);
+        }
+        return toItem(d, support.docTypes());
+    }
+
     /** Staff remove an additional document (marked deleted). */
     @Transactional
     public void delete(Long id) {
@@ -181,6 +198,7 @@ public class ProviderAdditionalDocumentService {
     private static AdditionalDocumentItem toItem(ProviderAdditionalDocument d, Map<String, DocumentType> types) {
         DocumentType t = types.get(d.getDocType());
         return new AdditionalDocumentItem(d.getId(), d.getProviderId(), d.getDocType(), t == null ? d.getDocType() : t.getLabel(),
-                d.getTitle(), d.getNotes(), d.getExpiresAt(), d.getFileName(), d.getMimeType(), d.getSizeBytes(), d.getStatus(), d.getUploadedAt());
+                d.getTitle(), d.getNotes(), d.getExpiresAt(), d.getFileName(), d.getMimeType(), d.getSizeBytes(), d.getStatus(), d.getUploadedAt(),
+                d.getNotesUpdatedAt(), d.getNotesUpdatedBy());
     }
 }
