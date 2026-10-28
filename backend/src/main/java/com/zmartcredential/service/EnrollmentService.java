@@ -227,7 +227,7 @@ public class EnrollmentService {
                 Boolean.TRUE.equals(req.clearEffectiveDate()) ? null : (req.effectiveDate() != null ? req.effectiveDate() : e.getEffectiveDate()),
                 req.notes() != null ? req.notes() : e.getNotes(),
                 Boolean.TRUE.equals(req.clearAssignedUser()) ? null : (req.assignedUserId() != null ? req.assignedUserId() : e.getAssignedUserId()),
-                e.getFollowUpDate(), e.getEstApprovedDate());
+                e.getFollowUpDate(), e.getEstApprovedDate(), e.getNextFollowUpDate());
         return update(id, merged);
     }
 
@@ -281,7 +281,7 @@ public class EnrollmentService {
                     throw new ConflictException("A re-credentialing application is already open (#" + x.getId() + ")");
                 });
         EnrollmentRequest req = new EnrollmentRequest(src.getProviderId(), src.getPayerId(), "draft", "recred",
-                src.getPracticeId(), src.getFormId(), null, null, null, src.getAssignedUserId(), null, null);
+                src.getPracticeId(), src.getFormId(), null, null, null, src.getAssignedUserId(), null, null, null);
         Enrollment created = createEntity(req, false, "Re-credentialing started from enrollment #" + src.getId());
         support.addEvent(src.getId(), "recredential_started", "Re-credentialing application #" + created.getId() + " created", null);
         return toResponse(created);
@@ -388,7 +388,10 @@ public class EnrollmentService {
                 throw BadRequestException.onField("effectiveDate", "Approved date must be on or after the submitted date");
             }
             if (r.followUpDate() != null && r.followUpDate().isBefore(r.submittedDate())) {
-                throw BadRequestException.onField("followUpDate", "Follow up date must be on or after the submitted date");
+                throw BadRequestException.onField("followUpDate", "Last follow up date must be on or after the submitted date");
+            }
+            if (r.nextFollowUpDate() != null && r.nextFollowUpDate().isBefore(r.submittedDate())) {
+                throw BadRequestException.onField("nextFollowUpDate", "Next follow up date must be on or after the submitted date");
             }
             if (r.estApprovedDate() != null && r.estApprovedDate().isBefore(r.submittedDate())) {
                 throw BadRequestException.onField("estApprovedDate", "Estimated approval date must be on or after the submitted date");
@@ -426,17 +429,19 @@ public class EnrollmentService {
         LocalDate approved = r.effectiveDate();
         if ("approved".equals(e.getStatus()) && approved == null) approved = LocalDate.now();
         e.setEffectiveDate(approved);
-        // follow-up and estimated approval dates: today or later (an unchanged earlier date is left alone)
+        // last follow-up: any date on or after the submitted date (checked above); next follow-up and estimated
+        // approval: today or later (an unchanged date is left alone)
         LocalDate today = LocalDate.now();
-        if (!"approved".equals(e.getStatus()) && r.followUpDate() != null && !r.followUpDate().equals(e.getFollowUpDate()) && r.followUpDate().isBefore(today)) {
-            throw BadRequestException.onField("followUpDate", "Choose today or a later date");
+        if (!"approved".equals(e.getStatus()) && r.nextFollowUpDate() != null && !r.nextFollowUpDate().equals(e.getNextFollowUpDate()) && r.nextFollowUpDate().isBefore(today)) {
+            throw BadRequestException.onField("nextFollowUpDate", "Choose today or a later date");
         }
         if (!"approved".equals(e.getStatus()) && r.estApprovedDate() != null && !r.estApprovedDate().equals(e.getEstApprovedDate()) && r.estApprovedDate().isBefore(today)) {
             throw BadRequestException.onField("estApprovedDate", "Choose today or a later date");
         }
-        // an approved enrollment has no follow-up / estimated approval date
+        // an approved enrollment has no next follow-up / estimated approval date (the last follow-up is kept)
         boolean approvedNow = "approved".equals(e.getStatus());
-        e.setFollowUpDate(approvedNow ? null : r.followUpDate());
+        e.setFollowUpDate(r.followUpDate());
+        e.setNextFollowUpDate(approvedNow ? null : r.nextFollowUpDate());
         e.setEstApprovedDate(approvedNow ? null : r.estApprovedDate());
         // always recomputed: clearing a date clears the TAT (prototype kept a stale value)
         e.setTatDays(EnrollmentSupport.tat(r.submittedDate(), r.effectiveDate()));
@@ -550,7 +555,7 @@ public class EnrollmentService {
                     EnrollmentSupport.tat(e.getSubmittedDate(), e.getEffectiveDate()), e.getNotes(),
                     e.getAssignedUserId(), e.getAssignedUserId() == null ? null : ctx.users().get(e.getAssignedUserId()),
                     fileCounts.getOrDefault(e.getId(), 0L).intValue(), evs.size(), last, e.getCreatedAt(), e.getUpdatedAt(),
-                    e.getFollowUpDate(), e.getEstApprovedDate(), e.getNotesUpdatedAt(), e.getNotesUpdatedBy(),
+                    e.getFollowUpDate(), e.getEstApprovedDate(), e.getNextFollowUpDate(), e.getNotesUpdatedAt(), e.getNotesUpdatedBy(),
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getId() : null,
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getName() : null,
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getMimeType() : null);

@@ -139,8 +139,8 @@ async function send<T>(method: string, path: string, opts: RequestOpts, retried:
 
 export const api = {
   get: <T>(path: string, query?: Query, opts?: { orgId?: number | string | null }) => request<T>("GET", path, { query, orgId: opts?.orgId }),
-  post: <T>(path: string, body?: unknown, query?: Query) => request<T>("POST", path, { body, query }),
-  put: <T>(path: string, body?: unknown) => request<T>("PUT", path, { body }),
+  post: <T>(path: string, body?: unknown, query?: Query, opts?: { orgId?: number | string | null }) => request<T>("POST", path, { body, query, orgId: opts?.orgId }),
+  put: <T>(path: string, body?: unknown, opts?: { orgId?: number | string | null }) => request<T>("PUT", path, { body, orgId: opts?.orgId }),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, { body }),
   delete: <T>(path: string) => request<T>("DELETE", path),
   upload: <T>(path: string, form: FormData, method = "POST") => request<T>(method, path, { form }),

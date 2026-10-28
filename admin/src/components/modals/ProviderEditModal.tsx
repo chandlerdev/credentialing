@@ -13,8 +13,20 @@ import type { ProviderDetail } from "@/types/providers";
  * Prototype ProviderEditModal (L14614) → PUT /providers/{id}. Uses the same form (fields and required rules)
  * as Add Provider, so adding and editing always ask for the same details.
  */
-export function ProviderEditModal({ provider, onSaved, onClose }: { provider: ProviderDetail; onSaved: (p: ProviderDetail) => void; onClose: () => void }) {
-  const org = useOrgStructure();
+export function ProviderEditModal({
+  provider,
+  orgId,
+  onSaved,
+  onClose,
+}: {
+  provider: ProviderDetail;
+  /** super admin: the provider's organization (every request goes to it) */
+  orgId?: number;
+  onSaved: (p: ProviderDetail) => void;
+  onClose: () => void;
+}) {
+  const org = useOrgStructure(true, orgId ?? null);
+  const opts = orgId != null ? { orgId } : undefined;
   return (
     <Modal title={"Edit " + (provider.firstName || "") + " " + (provider.lastName || "")} subtitle={"NPI " + (provider.npi || "")} onClose={onClose} maxWidth={880}>
       {org.error ? (
@@ -37,11 +49,11 @@ export function ProviderEditModal({ provider, onSaved, onClose }: { provider: Pr
           submitLabel="Update"
           onCancel={onClose}
           onSubmit={async ({ newPassword, ...body }) => {
-            let p = await api.put<ProviderDetail>("/providers/" + provider.id, body);
+            let p = await api.put<ProviderDetail>("/providers/" + provider.id, body, opts);
             if (newPassword) {
               // the provider's sign-in password (creates the sign-in when the provider has none yet)
-              await api.put("/providers/" + provider.id + "/login-password", { password: newPassword });
-              p = await api.get<ProviderDetail>("/providers/" + provider.id);
+              await api.put("/providers/" + provider.id + "/login-password", { password: newPassword }, opts);
+              p = await api.get<ProviderDetail>("/providers/" + provider.id, undefined, opts);
             }
             onSaved(p);
           }}

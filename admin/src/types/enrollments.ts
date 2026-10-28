@@ -20,8 +20,11 @@ export interface Enrollment {
   submittedDate: string | null;
   /** the approved date */
   effectiveDate: string | null;
+  /** the last follow-up with the payer */
   followUpDate?: string | null;
   estApprovedDate?: string | null;
+  /** the next follow-up with the payer */
+  nextFollowUpDate?: string | null;
   notesUpdatedAt?: string | null;
   notesUpdatedBy?: string | null;
   /** the payer's acknowledgement / approval certificate (approved enrollments) */
@@ -90,6 +93,7 @@ export interface EnrollmentRequest {
   effectiveDate?: string | null;
   followUpDate?: string | null;
   estApprovedDate?: string | null;
+  nextFollowUpDate?: string | null;
   notes?: string;
   assignedUserId?: number;
 }

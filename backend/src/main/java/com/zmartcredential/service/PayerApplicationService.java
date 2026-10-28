@@ -76,7 +76,7 @@ public class PayerApplicationService {
                 }
             }
             EnrollmentRequest er = new EnrollmentRequest(providerId, payer.getId(), "draft", req.applicationType(),
-                    null, req.formId(), null, null, null, null, null, null);
+                    null, req.formId(), null, null, null, null, null, null, null);
             created.add(enrollmentService.createEntity(er, false,
                     typeLabel(req.applicationType()) + " application started for " + payer.getName()));
         }

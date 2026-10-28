@@ -118,19 +118,21 @@ export interface OrgStructure {
   locations: LocationItem[];
 }
 
-export function useOrgStructure(enabled = true) {
+/** orgId: a super admin working on one organization (its clients, practices and locations). */
+export function useOrgStructure(enabled = true, orgId?: number | null) {
   return useAsync<OrgStructure>(
     enabled
       ? async () => {
+          const opts = orgId != null ? { orgId } : undefined;
           const [clients, practices, locations] = await Promise.all([
-            api.get<ClientItem[]>("/clients"),
-            api.get<PracticeItem[]>("/practices"),
-            api.get<LocationItem[]>("/locations"),
+            api.get<ClientItem[]>("/clients", undefined, opts),
+            api.get<PracticeItem[]>("/practices", undefined, opts),
+            api.get<LocationItem[]>("/locations", undefined, opts),
           ]);
           return { clients, practices, locations };
         }
       : null,
-    [enabled]
+    [enabled, orgId]
   );
 }
 

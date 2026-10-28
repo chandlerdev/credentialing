@@ -14,10 +14,9 @@ export const cityChars = (v: string) => v.replace(/[^A-Za-z .'-]/g, "").slice(0,
 /** Address: letters (incl. accented), digits, spaces and # , . : - / ' & ( ). */
 export const addressChars = (v: string) => v.replace(/[^\p{L}0-9 #,.:'/&()-]/gu, "").slice(0, 255);
 
-/** Phone / mobile: country code (+91 or +1) and exactly 10 digits, e.g. "+91 9876543210". */
-export const PHONE_RE = /^\+(1|91) \d{10}$/;
-export const PHONE_CODES = ["+91", "+1"] as const;
-export const DEFAULT_PHONE_CODE = "+91";
+/** Phone / mobile: the country code +1 (fixed for now) and exactly 10 digits, e.g. "+1 2025550123". */
+export const PHONE_RE = /^\+1 \d{10}$/;
+export const DEFAULT_PHONE_CODE = "+1";
 export const NPI_RE = /^\d{10}$/;
 export const ZIP_RE = /^\d{5}$/;
 export const TAX_ID_RE = /^[A-Za-z0-9-]{5,20}$/;
@@ -75,18 +74,20 @@ export function validate(rules: Record<string, [string, Rule]>): Record<string, 
   return errors;
 }
 
-/** Splits a stored phone into its country code and 10 digits (older values without a code get +91). */
+/**
+ * Splits a stored phone into its country code and 10 digits. The code is always +1 for now: numbers saved earlier
+ * with +91 (or without a code) keep their 10 digits and are saved back as +1.
+ */
 export function splitPhone(v: string | null | undefined): { code: string; digits: string } {
   const t = (v || "").trim();
   const m = /^\+(1|91)\s*(.*)$/.exec(t);
-  const code = m ? "+" + m[1] : DEFAULT_PHONE_CODE;
-  return { code, digits: (m ? m[2] : t).replace(/\D/g, "").slice(-10) };
+  return { code: DEFAULT_PHONE_CODE, digits: (m ? m[2] : t).replace(/\D/g, "").slice(-10) };
 }
 
-/** "+91 9876543210" — empty when no digits were entered. */
+/** "+1 2025550123" — empty when no digits were entered. */
 export const joinPhone = (code: string, digits: string) => (digits ? code + " " + digits : "");
 
-/** A stored phone in the form value format ("+91 9876543210"; "" when none). */
+/** A stored phone in the form value format ("+1 2025550123"; "" when none). */
 export const phoneDigits = (v: string | null | undefined) => {
   const { code, digits } = splitPhone(v);
   return joinPhone(code, digits);

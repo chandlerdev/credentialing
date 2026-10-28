@@ -24,6 +24,9 @@ public record EnrollmentRequest(
         @Size(max = 5000, message = "Notes must be at most 5000 characters")
         String notes,
         Long assignedUserId,
+        /* the last follow-up with the payer (today or earlier) */
         LocalDate followUpDate,
-        LocalDate estApprovedDate) {
+        LocalDate estApprovedDate,
+        /* the next follow-up (today or later) */
+        LocalDate nextFollowUpDate) {
 }

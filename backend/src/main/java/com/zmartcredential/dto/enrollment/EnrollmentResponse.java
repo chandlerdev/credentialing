@@ -30,6 +30,7 @@ public record EnrollmentResponse(
         LocalDateTime updatedAt,
         LocalDate followUpDate,
         LocalDate estApprovedDate,
+        LocalDate nextFollowUpDate,
         LocalDateTime notesUpdatedAt,
         String notesUpdatedBy,
         /* the payer's acknowledgement / approval certificate (latest 'acknowledgement' file) */

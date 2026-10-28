@@ -120,8 +120,8 @@ function MyPortal({ provider }: { provider: ProviderDetail }) {
               <h3 className="font-display font-semibold text-ink">Action Required</h3>
               <p className="text-sm text-ink-light mt-1">You have {missing} document(s) that need to be uploaded or updated. This may delay your credentialing.</p>
             </div>
-            <Link href="/my-documents/upload" className="btn btn-primary">
-              <Icon name="Upload" size={14} /> Upload Now
+            <Link href="/my-documents" className="btn btn-primary">
+              Go to My Documents <Icon name="ArrowRight" size={14} />
             </Link>
           </div>
         </div>
@@ -138,7 +138,9 @@ function MyPortal({ provider }: { provider: ProviderDetail }) {
               <tr>
                 <th>Document</th>
                 <th>Status</th>
+                <th>Mandatory</th>
                 <th>Expires</th>
+                <th>Last Updated</th>
               </tr>
             </thead>
             <tbody>
@@ -146,11 +148,18 @@ function MyPortal({ provider }: { provider: ProviderDetail }) {
                 if (doc.status === "na") return null;
                 return (
                   <tr key={doc.id}>
-                    <td className="font-medium">{doc.label}</td>
+                    <td className="font-medium">
+                      {doc.label}
+                      {doc.fileName && <div className="text-[10px] text-ink-faint font-normal truncate" style={{ maxWidth: 320 }}>{doc.fileName}</div>}
+                    </td>
                     <td>
                       <DocStatusBadge status={doc.status} />
                     </td>
+                    <td className="text-xs">
+                      <MandatoryMark yes={doc.critical} />
+                    </td>
                     <td className="text-ink-light text-xs">{doc.expiresAt ? fmtDate(doc.expiresAt) : "—"}</td>
+                    <td className="text-ink-light text-xs">{doc.uploadedAt ? fmtDate(doc.uploadedAt) : "—"}</td>
                   </tr>
                 );
               })}

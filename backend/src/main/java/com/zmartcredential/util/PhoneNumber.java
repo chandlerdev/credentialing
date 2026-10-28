@@ -1,8 +1,8 @@
 package com.zmartcredential.util;
 
 /**
- * Phone / mobile numbers everywhere: an optional country code (+91 or +1) and exactly 10 digits,
- * stored as "+91 9876543210" (older values without a code are still accepted).
+ * Phone / mobile numbers everywhere: the country code +1 (the only one the screens offer for now) and exactly
+ * 10 digits, stored as "+1 2025550123". Older values saved with +91 or without a code are still accepted.
  */
 public final class PhoneNumber {
 
