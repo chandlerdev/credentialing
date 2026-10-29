@@ -103,12 +103,6 @@ public class PayerWorkflowController {
         return service.emailSetup(id);
     }
 
-    @Operation(summary = "Log a reply the payer sent")
-    @PostMapping("/api/payer-workflows/{id}/reply")
-    public com.zmartcredential.service.PayerWorkflowService.Touch reply(@PathVariable Long id, @RequestBody com.zmartcredential.service.PayerWorkflowService.ReplyRequest req) {
-        return service.reply(id, req);
-    }
-
     @Operation(summary = "Read the organization's mailbox for payer replies now")
     @PostMapping("/api/payer-workflows/inbox/check")
     public com.zmartcredential.service.PayerInboxService.CheckResult checkInbox() {

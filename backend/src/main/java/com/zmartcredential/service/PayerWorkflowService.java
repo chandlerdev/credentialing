@@ -570,28 +570,6 @@ public class PayerWorkflowService {
                 .filter(t -> ref.equals(String.valueOf(t.getId())) || ref.equals(t.getCode())).map(t -> t.getName()).findFirst().orElse(null);
     }
 
-    public record ReplyRequest(String from, String subject, String body) {
-    }
-
-    /** Enrollments → Email follow-ups: log a reply the payer sent (e.g. to a mailbox the system doesn't read). */
-    @Transactional
-    public Touch reply(Long id, ReplyRequest r) {
-        Enrollment e = editable(id);
-        String from = r.from() == null ? "" : r.from().trim().toLowerCase(Locale.ROOT);
-        if (!from.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) throw BadRequestException.onField("from", "Enter a valid email address");
-        if (r.subject() == null || r.subject().isBlank()) throw BadRequestException.onField("subject", "Subject is required");
-        if (r.body() == null || r.body().isBlank()) throw BadRequestException.onField("body", "Enter the reply");
-        String subject = trim(r.subject(), 255), body = r.body().trim();
-        String text = "Reply received from " + from + ": \"" + subject + "\" — " + body;
-        EnrollmentWorkflowLog l = log(e, "email", text.length() > 2000 ? text.substring(0, 1997) + "…" : text);
-        l.setEmailFrom(from);
-        l.setEmailSubject(subject);
-        l.setEmailBody(body.length() > 20000 ? body.substring(0, 20000) : body);
-        l.setEmailStatus("received");
-        logRepository.save(l);
-        return touch(l);
-    }
-
     /** Reads the organization's mailbox for payer replies now (it is also read every few minutes). */
     public PayerInboxService.CheckResult checkInbox() {
         permissionService.require("enrollment", "read");
