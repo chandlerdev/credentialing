@@ -73,6 +73,8 @@ public class EnrollmentService {
     private final NotificationService notificationService;
     private final MailTemplateService mailTemplateService;
     private final SoftDeleteCascade softDeleteCascade;
+    private final com.zmartcredential.repository.EnrollmentWorkflowLogRepository workflowLogRepository;
+    private final PayerWorkflowDefs workflowDefs;
 
     /** Name lookups for assembling rows. */
     public record Ctx(Map<Long, Provider> providers, Map<Long, Payer> payers, Map<Long, String> practices,
@@ -449,7 +451,7 @@ public class EnrollmentService {
         e.setAssignedUserId(r.assignedUserId());
     }
 
-    private void afterStatusChange(Enrollment e, String oldStatus) {
+    void afterStatusChange(Enrollment e, String oldStatus) {
         String now = e.getStatus();
         if (Objects.equals(oldStatus, now)) return;
         // Enrollment Mail Templates: the provider is emailed when the enrollment is approved
@@ -529,6 +531,8 @@ public class EnrollmentService {
     public List<EnrollmentResponse> toResponses(Collection<Enrollment> list, Ctx ctx) {
         if (list.isEmpty()) return List.of();
         List<Long> ids = list.stream().map(Enrollment::getId).toList();
+        Map<Long, List<com.zmartcredential.entity.EnrollmentWorkflowLog>> touches = workflowLogRepository.findByEnrollmentIdIn(ids).stream()
+                .collect(Collectors.groupingBy(com.zmartcredential.entity.EnrollmentWorkflowLog::getEnrollmentId));
         List<EnrollmentFile> allFiles = fileRepository.findByEnrollmentIdIn(ids);
         Map<Long, Long> fileCounts = allFiles.stream()
                 .collect(Collectors.groupingBy(EnrollmentFile::getEnrollmentId, Collectors.counting()));
@@ -555,11 +559,25 @@ public class EnrollmentService {
                     EnrollmentSupport.tat(e.getSubmittedDate(), e.getEffectiveDate()), e.getNotes(),
                     e.getAssignedUserId(), e.getAssignedUserId() == null ? null : ctx.users().get(e.getAssignedUserId()),
                     fileCounts.getOrDefault(e.getId(), 0L).intValue(), evs.size(), last, e.getCreatedAt(), e.getUpdatedAt(),
-                    e.getFollowUpDate(), e.getEstApprovedDate(), e.getNextFollowUpDate(), e.getNotesUpdatedAt(), e.getNotesUpdatedBy(),
+                    e.getFollowUpDate(), e.getEstApprovedDate(), e.getNextFollowUpDate(),
+                    workflowStatus(e, payer, touches.get(e.getId())),
+                    countOf(touches.get(e.getId()), "call"), countOf(touches.get(e.getId()), "email"),
+                    e.getNotesUpdatedAt(), e.getNotesUpdatedBy(),
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getId() : null,
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getName() : null,
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getMimeType() : null);
         }).toList();
+    }
+
+    /** The payer workflow's step, once it has been worked (a step done, or a call / e-mail logged). */
+    private String workflowStatus(Enrollment e, Payer payer, List<com.zmartcredential.entity.EnrollmentWorkflowLog> logs) {
+        int step = e.getWfStep() == null ? 0 : e.getWfStep();
+        if (payer == null || (step == 0 && (logs == null || logs.isEmpty()))) return null;
+        return workflowDefs.statusLabel(payer, step);
+    }
+
+    private static int countOf(List<com.zmartcredential.entity.EnrollmentWorkflowLog> logs, String type) {
+        return logs == null ? 0 : (int) logs.stream().filter(l -> type.equals(l.getLogType())).count();
     }
 
     private static EnrollmentFileResponse toFileResponse(EnrollmentFile f, Map<Long, String> users) {

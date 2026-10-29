@@ -283,6 +283,8 @@ public class PayerService {
         }
         p.setApiAvailable(api);
         p.setCaqhUpdate(r.caqhUpdate() == null || r.caqhUpdate().isBlank() ? null : r.caqhUpdate().trim());
+        p.setSupportEmail(r.supportEmail() == null || r.supportEmail().isBlank() ? null : r.supportEmail().trim());
+        p.setSupportPhone(r.supportPhone() == null || r.supportPhone().isBlank() ? null : r.supportPhone().trim());
         if (id == null) p.setAddedByOrgId(addedByOrgId);
         p.setLogo(r.logo() == null || r.logo().isBlank() ? null : r.logo());
         p = payerRepository.save(p);

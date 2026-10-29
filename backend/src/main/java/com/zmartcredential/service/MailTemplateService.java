@@ -50,6 +50,27 @@ public class MailTemplateService {
     public static final String PROVIDER_LINK = "provider_link";
     public static final String ENROLLMENT_APPROVED = "enrollment_approved";
     public static final String DOCUMENT_REQUEST = "document_request";
+    /** Payer Submission → Email: the emails to the payers (all of an organization's templates are offered). */
+    public static final String PAYER_COMMUNICATION = "payer_communication";
+    public static final List<VariableInfo> PAYER_VARIABLES = List.of(
+            new VariableInfo("provider_name", "Provider name", false),
+            new VariableInfo("credentials", "Credentials (MD, DO…)", false),
+            new VariableInfo("npi", "Individual NPI", false),
+            new VariableInfo("specialty", "Specialty", false),
+            new VariableInfo("caqh_id", "CAQH ID", false),
+            new VariableInfo("group_npi", "Group NPI", false),
+            new VariableInfo("tin", "TIN", false),
+            new VariableInfo("practice", "Practice", false),
+            new VariableInfo("address", "Practice address", false),
+            new VariableInfo("payer_name", "Payer name", false),
+            new VariableInfo("case_no", "Case #", false),
+            new VariableInfo("reference_no", "Reference #", false),
+            new VariableInfo("payer_provider_id", "Payer provider ID", false),
+            new VariableInfo("submitted_date", "Submitted date", false),
+            new VariableInfo("days_since_submit", "Days since submission", false),
+            new VariableInfo("current_step", "Current workflow step", false),
+            new VariableInfo("sender_name", "Your name", false),
+            new VariableInfo("organization_name", "Organization name", false));
 
     private static final Map<String, List<VariableInfo>> VARIABLES = Map.of(
             PROVIDER_LINK, List.of(
@@ -73,7 +94,8 @@ public class MailTemplateService {
                     new VariableInfo("upload_link", "Secure link", true),
                     new VariableInfo("pin", "Access PIN", true),
                     new VariableInfo("link_expires", "Link expiry date", false),
-                    new VariableInfo("organization_name", "Organization name", false)));
+                    new VariableInfo("organization_name", "Organization name", false)),
+            PAYER_COMMUNICATION, PAYER_VARIABLES);
     private static final Pattern VAR = Pattern.compile("\\{\\{\\s*([a-z_]+)\\s*}}");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
@@ -128,6 +150,7 @@ public class MailTemplateService {
             copy.setOrgId(orgId);
             copy.setType(t.getType());
             copy.setBaseTemplateId(t.getId());
+            copy.setCode(t.getCode());
             apply(copy, req);
             t = templateRepository.save(copy);
             if (wasInUse) choose(orgId, t);
@@ -151,6 +174,7 @@ public class MailTemplateService {
             hidden.setOrgId(orgId);
             hidden.setType(t.getType());
             hidden.setBaseTemplateId(t.getId());
+            hidden.setCode(t.getCode());
             hidden.setName(t.getName());
             hidden.setSubject(t.getSubject());
             hidden.setBody(t.getBody());

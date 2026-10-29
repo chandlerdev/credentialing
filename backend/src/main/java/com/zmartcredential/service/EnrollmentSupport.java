@@ -146,7 +146,7 @@ public class EnrollmentSupport {
                 p.getSortOrder(), p.getActive(),
                 forms == null ? List.of() : forms.stream().map(EnrollmentSupport::toFormResponse).toList(),
                 p.getCreatedAt(), p.getUpdatedAt(), p.getLogo(), !Boolean.FALSE.equals(p.getPortalAvailable()),
-                p.getApiKeyEnc() != null, p.getApiTokenEnc() != null, p.getCaqhUpdate());
+                p.getApiKeyEnc() != null, p.getApiTokenEnc() != null, p.getCaqhUpdate(), p.getSupportEmail(), p.getSupportPhone());
     }
 
     public static PayerFormResponse toFormResponse(PayerForm f) {

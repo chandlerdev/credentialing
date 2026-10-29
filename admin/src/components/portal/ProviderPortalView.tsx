@@ -88,28 +88,47 @@ export function MyPortalView() {
   return <PortalGate title="My Portal">{(p) => <MyPortal provider={p} />}</PortalGate>;
 }
 
+type PortalList = "approved" | "enrollments" | "pending";
+
 function MyPortal({ provider }: { provider: ProviderDetail }) {
   const enrollments = useMyEnrollments();
+  const [list, setList] = useState<PortalList>("approved");
   const docs = nonNa(provider);
-  const approved = docs.filter((d) => d.status === "approved").length;
+  const approvedDocs = docs.filter((d) => d.status === "approved");
+  const pendingDocs = docs.filter((d) => d.status === "missing" || d.status === "expired");
+  const approved = approvedDocs.length;
   const total = docs.length;
-  const missing = docs.filter((d) => d.status === "missing" || d.status === "expired").length;
+  const missing = pendingDocs.length;
   const enr = enrollments.data || [];
+  const activeEnr = enr.filter((e) => e.status === "approved");
+
+  // the three cards choose what is listed below (approved documents first)
+  const tile = (key: PortalList, card: React.ReactNode, label: string) => (
+    <button type="button" onClick={() => setList(key)} className="text-left rounded-xl" style={list === key ? { boxShadow: "0 0 0 2px var(--accent)" } : undefined} aria-pressed={list === key} aria-label={"Show " + label} data-portal-tile={key}>
+      {card}
+    </button>
+  );
+  const title = list === "approved" ? "Approved Documents" : list === "pending" ? "Pending Action — Missing or Expired Documents" : "Active Enrollments";
+  const shownDocs = list === "approved" ? approvedDocs : pendingDocs;
 
   return (
     <div>
       <PageHeader title={"Welcome back, " + provider.firstName} subtitle="Here's the status of your credentialing." />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <StatCard label="Document Requirements" value={approved + "/" + total} sub={missing + " missing"} icon="FileText" color={missing > 0 ? "var(--warn)" : "var(--success)"} />
-        <StatCard
-          label="Active Enrollments"
-          value={enrollments.loading && !enrollments.data ? "…" : enr.filter((e) => e.status === "approved").length}
-          sub={enrollments.error ? "Could not load" : enr.length + " total"}
-          icon="ClipboardCheck"
-          color="var(--success)"
-        />
-        <StatCard label="Pending Action" value={missing} sub={missing > 0 ? "Action needed" : "All good"} icon="AlertCircle" color={missing > 0 ? "var(--accent)" : "var(--success)"} emphasize={missing > 0} />
+        {tile("approved", <StatCard label="Document Requirements" value={approved + "/" + total} sub={missing + " missing"} icon="FileText" color={missing > 0 ? "var(--warn)" : "var(--success)"} />, "approved documents")}
+        {tile(
+          "enrollments",
+          <StatCard
+            label="Active Enrollments"
+            value={enrollments.loading && !enrollments.data ? "…" : activeEnr.length}
+            sub={enrollments.error ? "Could not load" : enr.length + " total"}
+            icon="ClipboardCheck"
+            color="var(--success)"
+          />,
+          "active enrollments"
+        )}
+        {tile("pending", <StatCard label="Pending Action" value={missing} sub={missing > 0 ? "Action needed" : "All good"} icon="AlertCircle" color={missing > 0 ? "var(--accent)" : "var(--success)"} emphasize={missing > 0} />, "pending documents")}
       </div>
 
       {missing > 0 && (
@@ -127,26 +146,67 @@ function MyPortal({ provider }: { provider: ProviderDetail }) {
         </div>
       )}
 
-      <div className="card card-pad">
+      <div className="card card-pad" data-portal-list={list}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display font-semibold text-ink">My Documents</h3>
-          <Link href="/my-documents" className="text-xs text-accent hover:underline">View all</Link>
+          <h3 className="font-display font-semibold text-ink">{title}</h3>
+          <Link href={list === "enrollments" ? "/my-enrollments" : "/my-documents"} className="text-xs text-accent hover:underline">
+            View all
+          </Link>
         </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Document</th>
-                <th>Status</th>
-                <th>Mandatory</th>
-                <th>Expires</th>
-                <th>Last Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {provider.documents.slice(0, 8).map((doc) => {
-                if (doc.status === "na") return null;
-                return (
+        {list === "enrollments" ? (
+          enrollments.error ? (
+            <ErrorState message={enrollments.error} onRetry={enrollments.reload} />
+          ) : enrollments.loading && !enrollments.data ? (
+            <Loading />
+          ) : activeEnr.length === 0 ? (
+            <EmptyState icon="ClipboardList" title="No active enrollments yet" description={enr.length ? enr.length + " enrollment(s) in progress — see My Enrollments." : "Your organization hasn't started any payer enrollments for you yet."} />
+          ) : (
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Payer</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Approved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeEnr.map((e) => (
+                    <tr key={e.id}>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: e.payerColor || "var(--ink-faint)" }}></div>
+                          <span className="font-medium">{e.payerName || "—"}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <StatusPill status={e.status} />
+                      </td>
+                      <td className="text-ink-light text-xs">{fmtDate(e.submittedDate)}</td>
+                      <td className="text-ink-light text-xs">{fmtDate(e.effectiveDate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : shownDocs.length === 0 ? (
+          <EmptyState icon={list === "approved" ? "FileText" : "CheckCircle2"} title={list === "approved" ? "No approved documents yet" : "Nothing pending — all your documents are in"} />
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Status</th>
+                  <th>Mandatory</th>
+                  <th>Expires</th>
+                  <th>Last Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shownDocs.map((doc) => (
                   <tr key={doc.id}>
                     <td className="font-medium">
                       {doc.label}
@@ -161,11 +221,11 @@ function MyPortal({ provider }: { provider: ProviderDetail }) {
                     <td className="text-ink-light text-xs">{doc.expiresAt ? fmtDate(doc.expiresAt) : "—"}</td>
                     <td className="text-ink-light text-xs">{doc.uploadedAt ? fmtDate(doc.uploadedAt) : "—"}</td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

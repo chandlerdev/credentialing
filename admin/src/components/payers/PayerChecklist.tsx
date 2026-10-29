@@ -24,10 +24,37 @@ export function PayerChecklist({ onChanged }: { onChanged: () => void }) {
   const toast = useToast();
   const payers = useAsync<OrgPayer[]>(() => api.get<OrgPayer[]>("/payers/org-settings"), []);
   const [busy, setBusy] = useState<number | null>(null);
+  const [bulk, setBulk] = useState(false);
   const [search, setSearch] = useState("");
   const all = payers.data || [];
   const shown = all.filter((p) => matchesSearch(search, p.name, p.fullName, p.category));
   const enabledCount = all.filter((p) => p.enabled).length;
+  const shownOn = shown.filter((p) => p.enabled).length;
+  const allOn = shown.length > 0 && shownOn === shown.length;
+
+  /** Ticks (or unticks) every payer listed (the search narrows it). */
+  const toggleAll = async () => {
+    const target = !allOn;
+    const change = shown.filter((p) => p.enabled !== target);
+    if (!change.length) return;
+    setBulk(true);
+    let done = 0;
+    const changed = new Set<number>();
+    try {
+      for (const p of change) {
+        await api.patch("/payers/" + p.id + "/org-enabled", { enabled: target });
+        changed.add(p.id);
+        done++;
+      }
+      toast(done + (done === 1 ? " payer " : " payers ") + (target ? "enabled" : "disabled"));
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      payers.setData(all.map((x) => (changed.has(x.id) ? { ...x, enabled: target } : x)));
+      setBulk(false);
+      if (changed.size) onChanged();
+    }
+  };
 
   const toggle = async (p: OrgPayer) => {
     setBusy(p.id);
@@ -59,6 +86,13 @@ export function PayerChecklist({ onChanged }: { onChanged: () => void }) {
           <input value={search} onChange={(e) => setSearch(cleanSearch(e.target.value))} placeholder="Find a payer..." className="input input-sm" style={{ paddingLeft: 26 }} aria-label="Find a payer" />
         </div>
       </div>
+      {payers.data && shown.length > 0 && (
+        <label className="payer-check flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer border-b border-line" style={{ opacity: bulk ? 0.5 : 1 }}>
+          <input type="checkbox" checked={allOn} disabled={bulk || busy !== null} onChange={toggleAll} className="flex-shrink-0" style={{ width: 16, height: 16 }} aria-label="Select all payers" />
+          <span className="font-semibold text-ink">{search.trim() ? "Select all shown" : "Select all"}</span>
+          {bulk && <span className="loader ml-auto" style={{ width: 12, height: 12 }} />}
+        </label>
+      )}
       <div className="overflow-y-auto py-1" style={{ minHeight: 120 }}>
         {payers.error ? (
           <div className="text-xs p-3" style={{ color: "var(--danger)" }}>{payers.error}</div>
@@ -74,7 +108,7 @@ export function PayerChecklist({ onChanged }: { onChanged: () => void }) {
               style={{ opacity: busy === p.id ? 0.5 : 1 }}
               title={p.fullName || p.name}
             >
-              <input type="checkbox" checked={p.enabled} disabled={busy === p.id} onChange={() => toggle(p)} className="flex-shrink-0" style={{ width: 16, height: 16 }} />
+              <input type="checkbox" checked={p.enabled} disabled={busy === p.id || bulk} onChange={() => toggle(p)} className="flex-shrink-0" style={{ width: 16, height: 16 }} />
               <span className={"truncate " + (p.enabled ? "text-ink" : "text-ink-light")}>{p.name}</span>
             </label>
           ))

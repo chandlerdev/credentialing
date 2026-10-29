@@ -31,6 +31,10 @@ public record EnrollmentResponse(
         LocalDate followUpDate,
         LocalDate estApprovedDate,
         LocalDate nextFollowUpDate,
+        /* the payer workflow (Payer Submission): its step, and the calls / e-mails logged on it */
+        String workflowStatus,
+        int callCount,
+        int emailCount,
         LocalDateTime notesUpdatedAt,
         String notesUpdatedBy,
         /* the payer's acknowledgement / approval certificate (latest 'acknowledgement' file) */

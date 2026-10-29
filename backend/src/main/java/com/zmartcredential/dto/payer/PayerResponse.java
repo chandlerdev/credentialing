@@ -36,5 +36,7 @@ public record PayerResponse(
         /* API access: whether a key / token is saved (the values are never returned) */
         boolean hasApiKey,
         boolean hasApiToken,
-        String caqhUpdate) {
+        String caqhUpdate,
+        String supportEmail,
+        String supportPhone) {
 }

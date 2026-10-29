@@ -77,6 +77,11 @@ public class Payer {
     /** "CAQH Update" (free text). */
     private String caqhUpdate;
 
+    /** the payer's support mailbox and line (the Email / Call buttons of the payer cards) */
+    private String supportEmail;
+
+    private String supportPhone;
+
     /** API access: key and token, encrypted (never sent back to the browser). */
     @Column(columnDefinition = "TEXT")
     private String apiKeyEnc;

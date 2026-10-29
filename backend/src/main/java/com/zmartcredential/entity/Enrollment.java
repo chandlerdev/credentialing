@@ -47,6 +47,25 @@ public class Enrollment {
     /** Next follow-up with the payer (today or later when set). */
     private LocalDate nextFollowUpDate;
 
+    // ---- payer submission workflow (credentialing-workflows.json): the step reached and its state (JSON)
+
+    private Integer wfStep = 0;
+
+    /** portal | phone */
+    private String wfMethod;
+
+    /** checklist ticks: {"request": {"0": true}} */
+    private String wfTasks;
+
+    /** step details: {"caseNo": "...", "submittedDate": "2026-10-01"} */
+    private String wfFields;
+
+    /** documents: {"State license": {"fileId": 5, "file": "lic.pdf"} | {"caqh": true}} */
+    private String wfDocs;
+
+    /** when each step was started: {"0": "2026-10-01T10:00:00"} */
+    private String wfStepStarted;
+
     /** Estimated approval date (today or later when set). */
     private LocalDate estApprovedDate;
 

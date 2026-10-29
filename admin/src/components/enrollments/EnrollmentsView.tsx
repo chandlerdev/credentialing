@@ -11,13 +11,14 @@ import { ErrorState, Loading } from "@/components/AsyncState";
 import { Icon } from "@/components/Icon";
 import { NotesCell } from "@/components/NotesCell";
 import { AcknowledgementCell } from "./AcknowledgementCell";
+import { FollowUpLogModal } from "./FollowUpLogModal";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { StatusPill } from "@/components/Pill";
 import { api, errorMessage } from "@/lib/api";
 import { useAuth, useUser } from "@/stores/auth";
 import { useAsync, useDebounced } from "@/lib/hooks";
-import { fmtDate, cleanSearch } from "@/lib/utils";
+import { fmtDate, cleanSearch, todayISO } from "@/lib/utils";
 import { useToast } from "@/stores/toast";
 import { useShell, useTopic } from "@/stores/shell";
 import type { PageResponse } from "@/types";
@@ -39,6 +40,7 @@ export function EnrollmentsView() {
   const [showForm, setShowForm] = useState(false);
   const [deleting, setDeleting] = useState<Enrollment | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [touches, setTouches] = useState<{ enrollment: Enrollment; type: "call" | "email" } | null>(null);
   const q = useDebounced(search);
   const allowed = can("list", "enrollment");
 
@@ -144,9 +146,12 @@ export function EnrollmentsView() {
                       <th>Provider</th>
                       <th>Payer</th>
                       <th>Status</th>
-                      <th>Submitted</th>
-                      <th>Approved</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Submitted</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Approved</th>
                       <th>TAT</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Last Follow Up</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Next Follow Up</th>
+                      <th>Follow-ups</th>
                       <th>Notes</th>
                       <th>Acknowledgement</th>
                       <th className="text-right">Actions</th>
@@ -156,23 +161,70 @@ export function EnrollmentsView() {
                     {rows.map((e) => (
                       <tr key={e.id}>
                         <td>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2" style={{ minWidth: 150 }}>
                             <Avatar name={e.providerName} size={26} />
                             <span className="text-sm font-medium">{e.providerName}</span>
                           </div>
                         </td>
                         <td>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ background: e.payerColor || "var(--ink-light)" }}></div>
+                          <div className="flex items-center gap-2" style={{ minWidth: 120 }}>
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: e.payerColor || "var(--ink-light)" }}></div>
                             <span className="text-sm">{e.payerName || "—"}</span>
                           </div>
                         </td>
                         <td>
-                          <StatusPill status={e.status} />
+                          <div className="flex flex-col items-start gap-1">
+                            <StatusPill status={e.status} />
+                            {e.workflowStatus && (
+                              <span className="text-[11px] text-ink-faint" style={{ whiteSpace: "nowrap" }} title="Payer Submission workflow" data-workflow-status>
+                                {e.workflowStatus}
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="text-xs text-ink-light">{e.submittedDate ? fmtDate(e.submittedDate) : "—"}</td>
-                        <td className="text-xs text-ink-light">{e.effectiveDate ? fmtDate(e.effectiveDate) : "—"}</td>
+                        <td className="text-xs text-ink-light" style={{ whiteSpace: "nowrap" }}>{e.submittedDate ? fmtDate(e.submittedDate) : "—"}</td>
+                        <td className="text-xs text-ink-light" style={{ whiteSpace: "nowrap" }}>{e.effectiveDate ? fmtDate(e.effectiveDate) : "—"}</td>
                         <td className="font-mono text-xs">{e.tatDays ? e.tatDays + "d" : "—"}</td>
+                        <td className="text-xs text-ink-light" style={{ whiteSpace: "nowrap" }} data-last-follow-up>{e.followUpDate ? fmtDate(e.followUpDate) : "—"}</td>
+                        <td className="text-xs" style={{ whiteSpace: "nowrap" }} data-next-follow-up>
+                          {e.nextFollowUpDate ? (
+                            e.nextFollowUpDate < todayISO() && e.status !== "approved" ? (
+                              <span className="font-semibold" style={{ color: "var(--danger)" }} title="Overdue">
+                                {fmtDate(e.nextFollowUpDate)} · overdue
+                              </span>
+                            ) : e.nextFollowUpDate === todayISO() ? (
+                              <span className="font-semibold" style={{ color: "#a16207" }}>{fmtDate(e.nextFollowUpDate)} · today</span>
+                            ) : (
+                              <span className="text-ink-light">{fmtDate(e.nextFollowUpDate)}</span>
+                            )
+                          ) : (
+                            <span className="text-ink-light">—</span>
+                          )}
+                        </td>
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          <div className="flex items-center gap-1">
+                            <button
+                              className="btn btn-ghost text-xs"
+                              style={{ padding: "3px 7px" }}
+                              onClick={() => setTouches({ enrollment: e, type: "call" })}
+                              title="Call follow-ups"
+                              aria-label={"Call follow-ups of " + e.providerName + " → " + (e.payerName || "")}
+                              data-calls={e.callCount || 0}
+                            >
+                              <Icon name="Phone" size={12} /> {e.callCount || 0}
+                            </button>
+                            <button
+                              className="btn btn-ghost text-xs"
+                              style={{ padding: "3px 7px" }}
+                              onClick={() => setTouches({ enrollment: e, type: "email" })}
+                              title="Email follow-ups"
+                              aria-label={"Email follow-ups of " + e.providerName + " → " + (e.payerName || "")}
+                              data-emails={e.emailCount || 0}
+                            >
+                              <Icon name="Mail" size={12} /> {e.emailCount || 0}
+                            </button>
+                          </div>
+                        </td>
                         <td>
                           <NotesCell<Enrollment>
                             notes={e.notes}
@@ -232,6 +284,8 @@ export function EnrollmentsView() {
           }}
         />
       )}
+
+      {touches && <FollowUpLogModal enrollment={touches.enrollment} type={touches.type} canLog={can("update", "enrollment")} onClose={() => setTouches(null)} onChanged={list.reload} />}
 
       {deleting && (
         <ConfirmDialog

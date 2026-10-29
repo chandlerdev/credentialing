@@ -13,6 +13,7 @@ export function PhoneInput({
   disabled = false,
   id,
   autoComplete = "tel-national",
+  placeholder = "10 digits",
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -20,6 +21,7 @@ export function PhoneInput({
   disabled?: boolean;
   id?: string;
   autoComplete?: string;
+  placeholder?: string;
 }) {
   const parts = splitPhone(value);
   return (
@@ -38,7 +40,7 @@ export function PhoneInput({
         onChange={(e) => onChange(joinPhone(DEFAULT_PHONE_CODE, digitsOnly(e.target.value, 10)))}
         className={"input font-mono flex-1 min-w-0" + (invalid ? " input-error" : "")}
         inputMode="numeric"
-        placeholder="10 digits"
+        placeholder={placeholder || undefined}
         maxLength={10}
         disabled={disabled}
         autoComplete={autoComplete}

@@ -13,7 +13,7 @@ public final class MailTemplateDtos {
 
     public record MailTemplateRequest(
             @NotBlank(message = "Choose the template type")
-            @Pattern(regexp = "^(provider_link|enrollment_approved|document_request)$", message = "Unknown template type")
+            @Pattern(regexp = "^(provider_link|enrollment_approved|document_request|payer_communication)$", message = "Unknown template type")
             String type,
             @NotBlank(message = "Template name is required") @Size(min = 2, max = 150, message = "2-150 characters")
             String name,

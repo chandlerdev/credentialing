@@ -5,6 +5,8 @@ import { Select } from "@/components/Select";
 import { useMasterList, withCurrent } from "@/lib/masterLists";
 import { useRef, useState } from "react";
 import { Field } from "@/components/Field";
+import { PhoneInput } from "@/components/PhoneInput";
+import { EMAIL_RE, PHONE_RE, phoneDigits } from "@/lib/validation";
 import { Icon } from "@/components/Icon";
 import { ConfirmDialog, Modal } from "@/components/Modal";
 import { PayerLogo } from "@/components/payers/PayerLogo";
@@ -33,6 +35,8 @@ interface PayerForm {
   portalUrl: string;
   logo: string;
   caqhUpdate: string;
+  supportEmail: string;
+  supportPhone: string;
   apiAccess: boolean;
   apiKey: string;
   apiToken: string;
@@ -62,6 +66,8 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
     portalUrl: payer?.portalUrl || "",
     logo: payer?.logo || "",
     caqhUpdate: payer?.caqhUpdate || "",
+    supportEmail: payer?.supportEmail || "",
+    supportPhone: phoneDigits(payer?.supportPhone),
     apiAccess: !!payer?.apiAvailable,
     apiKey: "",
     apiToken: "",
@@ -91,6 +97,8 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
     if (!form.name.trim()) e.name = "Payer name is required";
     if (!form.fullName.trim()) e.fullName = "Insurance company name is required";
     if (!form.category) e.category = "Payer category is required";
+    if (form.supportEmail.trim() && !EMAIL_RE.test(form.supportEmail.trim())) e.supportEmail = "Enter a valid email address";
+    if (form.supportPhone && !PHONE_RE.test(form.supportPhone)) e.supportPhone = "Ph.No must be 10 digits";
     const tat = Number(form.avgTatDays);
     if (form.avgTatDays && (!Number.isInteger(tat) || tat < 1 || tat > 365)) e.avgTatDays = "1-365 days";
     // the portal login URL is asked only when the payer has a portal
@@ -121,6 +129,8 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
       apiKey: form.apiAccess ? form.apiKey.trim() || null : null,
       apiToken: form.apiAccess ? form.apiToken.trim() || null : null,
       caqhUpdate: form.caqhUpdate.trim() || null,
+      supportEmail: form.supportEmail.trim() || null,
+      supportPhone: form.supportPhone || null,
     };
     try {
       if (org) {
@@ -235,6 +245,15 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
                 <option key={i.value} value={i.value}>{i.label}</option>
               ))}
             </Select>
+          </Field>
+        </div>
+        {/* the payer's support contacts: the Email / Call buttons of Payer Submission */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Support Email" error={errors.supportEmail}>
+            <input type="email" value={form.supportEmail} onChange={(e) => set("supportEmail", e.target.value.trim())} className={"input" + (errors.supportEmail ? " input-error" : "")} maxLength={255} aria-label="Support Email" />
+          </Field>
+          <Field label="Support Phone" error={errors.supportPhone}>
+            <PhoneInput value={form.supportPhone} onChange={(v) => set("supportPhone", v)} invalid={!!errors.supportPhone} placeholder="" />
           </Field>
         </div>
         <Field label="Form" error={errors.appForm}>

@@ -42,5 +42,11 @@ public record PlatformPayerRequest(
         /* optional: data:image/png|jpeg|webp|svg+xml;base64,… (about 500 KB at most) */
         @Size(max = 700000, message = "The image must be 500 KB or smaller")
         @Pattern(regexp = "^$|^data:image/(png|jpeg|webp|svg\\+xml);base64,[A-Za-z0-9+/=]+$", message = "Choose a PNG, JPG, WEBP or SVG image")
-        String logo) {
+        String logo,
+        /* support contacts (optional): the Email / Call buttons of Payer Submission */
+        @Size(max = 255, message = "At most 255 characters")
+        @Pattern(regexp = "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", message = "Enter a valid email address")
+        String supportEmail,
+        @Pattern(regexp = com.zmartcredential.util.PhoneNumber.OPTIONAL_PATTERN, message = com.zmartcredential.util.PhoneNumber.MESSAGE)
+        String supportPhone) {
 }

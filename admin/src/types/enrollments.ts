@@ -25,6 +25,10 @@ export interface Enrollment {
   estApprovedDate?: string | null;
   /** the next follow-up with the payer */
   nextFollowUpDate?: string | null;
+  /* the payer workflow (Payer Submission): its step, and the calls / e-mails logged on it */
+  workflowStatus?: string | null;
+  callCount?: number;
+  emailCount?: number;
   notesUpdatedAt?: string | null;
   notesUpdatedBy?: string | null;
   /** the payer's acknowledgement / approval certificate (approved enrollments) */
@@ -160,6 +164,9 @@ export interface Payer {
   hasApiKey?: boolean;
   hasApiToken?: boolean;
   caqhUpdate?: string | null;
+  /** the payer's support mailbox and line (Payer Submission: Email / Call) */
+  supportEmail?: string | null;
+  supportPhone?: string | null;
 }
 
 // ---------- Providers (owned by the providers module; only the lite list is used here) ----------

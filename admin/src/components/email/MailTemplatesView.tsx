@@ -12,7 +12,7 @@ import { matchesSearch } from "@/lib/search";
 import { cleanSearch } from "@/lib/utils";
 import { useToast } from "@/stores/toast";
 
-export type MailTemplateType = "provider_link" | "enrollment_approved" | "document_request";
+export type MailTemplateType = "provider_link" | "enrollment_approved" | "document_request" | "payer_communication";
 
 interface MailTemplateItem {
   id: number;
@@ -50,6 +50,12 @@ const COPY: Record<MailTemplateType, { title: string; subtitle: string; used: st
     used: "Document request emails use this template",
     icon: "FileQuestion",
   },
+  payer_communication: {
+    title: "Payer Communication Templates",
+    subtitle: "The emails to the payers from Payer Submission (Email). Every template here is offered in the Email dialog, filled with the provider's and payer's details.",
+    used: "",
+    icon: "Building2",
+  },
   enrollment_approved: {
     title: "Enrollment Mail Templates",
     subtitle: "The email a provider receives when one of their enrollments is approved.",
@@ -71,6 +77,21 @@ const SAMPLE: Record<string, string> = {
   payer_name: "BCBS TX",
   effective_date: "11/01/2026",
   status: "Approved",
+  credentials: "MD",
+  npi: "1234567890",
+  specialty: "Family Medicine",
+  caqh_id: "15238870",
+  group_npi: "1987654321",
+  tin: "74-1234567",
+  practice: "Austin Family Clinic",
+  address: "100 Main St, Austin, TX 78701",
+  case_no: "CASE-7781",
+  reference_no: "REF-55120",
+  payer_provider_id: "P-448812",
+  submitted_date: "Oct 1, 2026",
+  days_since_submit: "28",
+  current_step: "Review",
+  sender_name: "Jake Zebaida",
 };
 const fill = (text: string) => text.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: string) => SAMPLE[k] ?? m);
 
@@ -78,6 +99,8 @@ const fill = (text: string) => text.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: s
 export function MailTemplatesView({ type, embedded = false }: { type: MailTemplateType; /** inside Custom Templates (no page title) */ embedded?: boolean }) {
   const toast = useToast();
   const copy = COPY[type];
+  // payer communication: every template is offered when emailing a payer (none is "the one in use")
+  const pickable = type !== "payer_communication";
   const list = useAsync<MailTemplateList>(() => api.get<MailTemplateList>("/mail-templates", { type }), [type]);
   const [editing, setEditing] = useState<MailTemplateItem | "new" | null>(null);
   const [deleting, setDeleting] = useState<MailTemplateItem | null>(null);
@@ -150,7 +173,7 @@ export function MailTemplatesView({ type, embedded = false }: { type: MailTempla
               <div
                 key={t.id}
                 className="card flex flex-col"
-                style={t.inUse ? { borderColor: "var(--accent)", boxShadow: "0 0 0 1px var(--accent)" } : undefined}
+                style={pickable && t.inUse ? { borderColor: "var(--accent)", boxShadow: "0 0 0 1px var(--accent)" } : undefined}
               >
                 <div className="p-4 pb-3 flex items-start gap-3">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg-soft-2)" }}>
@@ -162,7 +185,7 @@ export function MailTemplatesView({ type, embedded = false }: { type: MailTempla
                       {t.builtIn && (
                         <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded" style={{ background: "var(--bg-soft-2)", color: "var(--ink-light)" }}>Built-in</span>
                       )}
-                      {t.inUse && (
+                      {pickable && t.inUse && (
                         <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded inline-flex items-center gap-1" style={{ background: "var(--accent)", color: "white" }}>
                           <Icon name="Check" size={10} /> In use
                         </span>
@@ -179,7 +202,7 @@ export function MailTemplatesView({ type, embedded = false }: { type: MailTempla
                   </div>
                 </div>
                 <div className="p-4 pt-3 flex items-center gap-2 flex-wrap">
-                  {t.inUse ? (
+                  {!pickable ? null : t.inUse ? (
                     <span className="text-xs text-ink-light inline-flex items-center gap-1"><Icon name="CheckCircle2" size={13} style={{ color: "var(--success)" }} /> {copy.used}</span>
                   ) : (
                     <button onClick={() => use(t)} disabled={using !== null} className="btn btn-primary" style={{ fontSize: 12, padding: "6px 12px" }}>
@@ -231,7 +254,7 @@ export function MailTemplatesView({ type, embedded = false }: { type: MailTempla
           title="Delete template"
           message={
             <>
-              Delete <strong>{deleting.name}</strong>?{deleting.builtIn ? " It is removed for your organization only." : ""}{deleting.inUse ? " It is the template in use — emails will use the first template in the list until you pick another." : ""}
+              Delete <strong>{deleting.name}</strong>?{deleting.builtIn ? " It is removed for your organization only." : ""}{pickable && deleting.inUse ? " It is the template in use — emails will use the first template in the list until you pick another." : ""}
             </>
           }
           busy={deleteBusy}

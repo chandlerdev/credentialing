@@ -32,4 +32,7 @@ public class EmailTemplate {
 
     /** An organization's own copy of the built-in template it edited or deleted (hides the built-in for it). */
     private Long baseTemplateId;
+
+    /** A built-in template's key (payer communication: the workflow step suggests it); kept on an organization's copy. */
+    private String code;
 }

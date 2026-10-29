@@ -25,7 +25,11 @@ import java.util.regex.Pattern;
 public class MailService {
 
     /** sent | failed | queued (sending disabled); error is the server's message when it failed. */
-    public record Result(String status, String error) {
+    public record Result(String status, String error, String messageId) {
+        public Result(String status, String error) {
+            this(status, error, null);
+        }
+
         public boolean sent() {
             return "sent".equals(status);
         }
@@ -38,6 +42,17 @@ public class MailService {
 
     public boolean enabled() {
         return props.mail() != null && props.mail().enabled();
+    }
+
+    /** The sender address emails go out from ("" when not configured). */
+    public String fromAddress() {
+        String from = props.mail() == null ? null : props.mail().from();
+        return from == null ? "" : from.trim();
+    }
+
+    public String fromName() {
+        String n = props.mail() == null ? null : props.mail().fromName();
+        return n == null ? "" : n.trim();
     }
 
     /** Public site address for links in emails, without a trailing slash. */
@@ -72,7 +87,7 @@ public class MailService {
             helper.setText(textBody, toHtml(textBody));
             sender.send(message);
             log.info("Mail sent to {}: {}", to, subject);
-            return new Result("sent", null);
+            return new Result("sent", null, message.getMessageID());
         } catch (Exception e) {
             String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
             log.warn("Could not send mail to {}: {}", to, reason);
