@@ -80,8 +80,11 @@ export function WorkflowDrawer({ enrollmentId, meta, onClose, onChanged }: { enr
           />
         )}
       </div>
-      {calling && f && <CallModal card={f.card} onClose={() => setCalling(false)} onLogged={(n) => n && updated(n)} />}
-      {emailing && f && <EmailModal card={f.card} meta={meta} flow={f} onClose={() => setEmailing(false)} onLogged={(n) => n && updated(n)} />}
+      {/* clicks in these popups must not reach the backdrop above (it closes the drawer) */}
+      <div onClick={(e) => e.stopPropagation()}>
+        {calling && f && <CallModal card={f.card} onClose={() => setCalling(false)} onLogged={(n) => n && updated(n)} />}
+        {emailing && f && <EmailModal card={f.card} meta={meta} flow={f} onClose={() => setEmailing(false)} onLogged={(n) => n && updated(n)} />}
+      </div>
     </div>
   );
 }

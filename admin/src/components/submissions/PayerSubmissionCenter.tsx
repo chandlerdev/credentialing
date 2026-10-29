@@ -197,7 +197,8 @@ function PayerCardView({
         <button className="btn text-xs flex-1 text-white" style={{ background: "#2563eb", padding: "7px 10px" }} onClick={onWorkflow}>
           <Icon name="Workflow" size={13} /> Workflow
         </button>
-        {canLogin && (
+        {/* like the globe: no portal, no portal login */}
+        {canLogin && c.portalUrl && (
           <button className="btn text-xs flex-1" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)", border: "1px solid var(--accent)", padding: "7px 10px" }} onClick={onLogin}>
             <Icon name="LogIn" size={13} /> {hasLogin ? "Update Login" : "Portal Login"}
           </button>
