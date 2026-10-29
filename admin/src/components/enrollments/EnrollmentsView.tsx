@@ -2,7 +2,7 @@
 
 import { Select } from "@/components/Select";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessDenied } from "@/components/AlertBox";
 import { Avatar } from "@/components/Avatar";
 import { ConfirmDialog } from "@/components/Modal";
@@ -25,7 +25,7 @@ import type { PageResponse } from "@/types";
 import { EnrollmentFormModal } from "@/components/modals/EnrollmentFormModal";
 import type { Enrollment, EnrollmentSummary } from "@/types/enrollments";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
 
 /** Port of the prototype EnrollmentsView (L14126). */
 export function EnrollmentsView() {
@@ -40,6 +40,28 @@ export function EnrollmentsView() {
   const [showForm, setShowForm] = useState(false);
   const [deleting, setDeleting] = useState<Enrollment | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  // the list fills the window down to the bottom (no page scroll): the rows scroll inside it, pagination stays below
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [cardHeight, setCardHeight] = useState<number | null>(null);
+  const fit = useCallback(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const pad = el.closest(".main-pad");
+    const bottom = pad ? parseFloat(getComputedStyle(pad).paddingBottom) || 0 : 32;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    setCardHeight(Math.max(280, Math.floor(window.innerHeight - top - bottom)));
+  }, []);
+  useEffect(() => {
+    fit();
+    window.addEventListener("resize", fit);
+    // re-fit when anything above the list changes height (subtitle / filters loading, wrapping on small screens)
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => fit());
+    ro?.observe(document.body);
+    return () => {
+      window.removeEventListener("resize", fit);
+      ro?.disconnect();
+    };
+  }, [fit]);
   const [touches, setTouches] = useState<{ enrollment: Enrollment; type: "call" | "email" } | null>(null);
   const q = useDebounced(search);
   const allowed = can("list", "enrollment");
@@ -132,15 +154,23 @@ export function EnrollmentsView() {
       {list.error ? (
         <ErrorState message={list.error} onRetry={list.reload} />
       ) : (
-        <div className="card overflow-hidden">
+        <div
+          ref={(el) => {
+            cardRef.current = el;
+            if (el && cardHeight === null) requestAnimationFrame(fit);
+          }}
+          className="card overflow-hidden flex flex-col"
+          style={{ height: cardHeight ?? "calc(100vh - 260px)", minHeight: 280 }}
+          data-enrollments-card
+        >
           {list.loading && !list.data ? (
             <Loading />
           ) : rows.length === 0 ? (
             <EmptyState icon="ClipboardList" title="No enrollments match" />
           ) : (
             <>
-              <div className="table-scroll overflow-x-auto">
-                <table>
+              <div className="table-scroll flex-1 min-h-0" style={{ overflow: "auto" }}>
+                <table className="sticky-head">
                   <thead>
                     <tr>
                       <th>Provider</th>
@@ -262,8 +292,10 @@ export function EnrollmentsView() {
                   </tbody>
                 </table>
               </div>
-              {list.data && list.data.totalPages > 1 && (
+              {list.data && (
+                <div className="border-t border-line flex-shrink-0" data-pagination>
                 <Pagination page={list.data.page} totalPages={list.data.totalPages} totalElements={list.data.totalElements} size={list.data.size} onChange={setPage} />
+                </div>
               )}
             </>
           )}

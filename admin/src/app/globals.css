@@ -194,3 +194,4 @@ tr.no-hover td { background: transparent; }
 
 /* Admin → Payers: payer checklist rows */
 .payer-check:hover { background: var(--bg-soft-2); }
+.sticky-head th { position: sticky; top: 0; z-index: 2; }
