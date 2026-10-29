@@ -44,6 +44,11 @@ public class EnrollmentWorkflowLog {
     /** a call: the payer was reached (communication happened) */
     private Boolean callAttended;
 
+    /** a call: its notes, and the next follow-up it set */
+    private String callNotes;
+
+    private java.time.LocalDate nextFollowUp;
+
     private String emailFrom;
 
     private String emailBody;

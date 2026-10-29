@@ -465,6 +465,8 @@ public class PayerWorkflowService {
         EnrollmentWorkflowLog l = log(e, "call", text);
         l.setCallOutcome(status.label());
         l.setCallAttended(status.attended());
+        l.setCallNotes(notes);
+        l.setNextFollowUp(r.nextFollowUp());
         l.setCallRef(ref);
         l.setCallMinutes(r.minutes());
         logRepository.save(l);
@@ -530,7 +532,22 @@ public class PayerWorkflowService {
     }
 
     public record Touch(Long id, LocalDateTime at, String by, String text, String outcome, Boolean attended, String ref, Integer minutes,
-                        String from, String to, String subject, String body, String status) {
+                        String notes, LocalDate nextFollowUp, String from, String to, String subject, String body, String status) {
+    }
+
+    private static final Pattern NEXT_IN_TEXT = Pattern.compile(" · next follow-up ([A-Z][a-z]{2} \\d{1,2}, \\d{4})$");
+
+    /** Calls logged before the notes / next follow-up were kept apart: read them from the text. */
+    private static String[] legacyCall(EnrollmentWorkflowLog l) {
+        String t = l.getText() == null ? "" : l.getText();
+        String next = null;
+        java.util.regex.Matcher m = NEXT_IN_TEXT.matcher(t);
+        if (m.find()) {
+            next = m.group(1);
+            t = t.substring(0, m.start());
+        }
+        String[] parts = t.split(" — ", 3); // Called X — status · ref · min — notes
+        return new String[] {parts.length == 3 ? parts[2].trim() : null, next};
     }
 
     // ------------------------------------------------------------------ email setup, replies
@@ -578,8 +595,19 @@ public class PayerWorkflowService {
     }
 
     private static Touch touch(EnrollmentWorkflowLog l) {
+        String notes = l.getCallNotes();
+        LocalDate next = l.getNextFollowUp();
+        if ("call".equals(l.getLogType()) && notes == null && next == null) {
+            String[] legacy = legacyCall(l);
+            notes = legacy[0];
+            try {
+                next = legacy[1] == null ? null : LocalDate.parse(legacy[1], SHORT);
+            } catch (Exception ignored) {
+                next = null;
+            }
+        }
         return new Touch(l.getId(), l.getCreatedAt(), l.getCreatedByName(), l.getText(), l.getCallOutcome(), l.getCallAttended(), l.getCallRef(),
-                l.getCallMinutes(), l.getEmailFrom(), l.getEmailTo(), l.getEmailSubject(), l.getEmailBody(), l.getEmailStatus());
+                l.getCallMinutes(), notes, next, l.getEmailFrom(), l.getEmailTo(), l.getEmailSubject(), l.getEmailBody(), l.getEmailStatus());
     }
 
     /** Enrollments → the call or e-mail follow-ups of an enrollment, newest first. */

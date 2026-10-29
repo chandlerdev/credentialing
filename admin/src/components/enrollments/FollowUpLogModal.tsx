@@ -20,6 +20,8 @@ interface Touch {
   attended: boolean | null;
   ref: string | null;
   minutes: number | null;
+  notes: string | null;
+  nextFollowUp: string | null;
   from: string | null;
   to: string | null;
   subject: string | null;
@@ -121,7 +123,13 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
                   )}
                 </div>
                 {isCall
-                  ? t.text && <div className="text-xs mt-1 whitespace-pre-wrap break-words">{t.text}</div>
+                  ? (
+                      <div className="text-xs mt-1 space-y-0.5" data-call-lines>
+                        <div>Called {e.payerName || "the payer"}</div>
+                        {t.notes && <div className="whitespace-pre-wrap break-words">Status: {t.notes}</div>}
+                        {t.nextFollowUp && <div>Next follow-up: {fmtDate(t.nextFollowUp)}</div>}
+                      </div>
+                    )
                   : t.body && (
                       <div className="mt-1">
                         {open === t.id ? (
