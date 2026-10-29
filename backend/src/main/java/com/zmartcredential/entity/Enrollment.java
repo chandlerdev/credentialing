@@ -47,6 +47,9 @@ public class Enrollment {
     /** Next follow-up with the payer (today or later when set). */
     private LocalDate nextFollowUpDate;
 
+    /** the Next Follow Up Date already reminded about (FollowUpDueJob: each date once) */
+    private LocalDate followUpNotifiedOn;
+
     // ---- payer submission workflow (credentialing-workflows.json): the step reached and its state (JSON)
 
     private Integer wfStep = 0;

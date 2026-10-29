@@ -34,7 +34,7 @@ const STATUS_LABEL: Record<string, string> = { sent: "Sent", drafted: "Opened in
 export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose, onChanged }: { enrollment: Enrollment; type: "call" | "email"; canLog?: boolean; onClose: () => void; onChanged?: () => void }) {
   const toast = useToast();
   const q = useAsync<Touch[]>(() => api.get("/payer-workflows/" + e.id + "/touches", { type }), [e.id, type]);
-  const setup = useAsync<{ inboxEnabled: boolean }>(type === "email" ? () => api.get("/payer-workflows/" + e.id + "/email-setup") : null, [e.id, type]);
+  const setup = useAsync<{ inboxEnabled: boolean; from: string }>(type === "email" ? () => api.get("/payer-workflows/" + e.id + "/email-setup") : null, [e.id, type]);
   const [replying, setReplying] = useState(false);
   const [checking, setChecking] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
@@ -56,16 +56,20 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
   };
 
   return (
+    <>
     <Modal title={(isCall ? "Call follow-ups · " : "Email follow-ups · ") + e.providerName + " → " + (e.payerName || "")} onClose={onClose} maxWidth={720}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 text-xs">
+      <div className={"grid grid-cols-1 gap-2 mb-3 text-xs" + (isCall ? " sm:grid-cols-2" : "")}>
         <div className="rounded-lg px-3 py-2" style={{ background: "var(--bg-soft)" }}>
           <div className="text-ink-faint">Last Follow Up</div>
           <div className="font-semibold">{e.followUpDate ? fmtDate(e.followUpDate) : "—"}</div>
         </div>
-        <div className="rounded-lg px-3 py-2" style={{ background: "var(--bg-soft)" }}>
-          <div className="text-ink-faint">Next Follow Up</div>
-          <div className="font-semibold">{e.nextFollowUpDate ? fmtDate(e.nextFollowUpDate) : "—"}</div>
-        </div>
+        {/* the email list has no Next Follow Up (it is set from Payer Submission) */}
+        {isCall && (
+          <div className="rounded-lg px-3 py-2" style={{ background: "var(--bg-soft)" }} data-next-box>
+            <div className="text-ink-faint">Next Follow Up</div>
+            <div className="font-semibold">{e.nextFollowUpDate ? fmtDate(e.nextFollowUpDate) : "—"}</div>
+          </div>
+        )}
       </div>
       {!isCall && canLog && (
         <div className="flex justify-end gap-2 mb-3 flex-wrap">
@@ -74,23 +78,10 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
               {checking ? <span className="loader" /> : <Icon name="RefreshCw" size={12} />} Check for replies
             </button>
           )}
-          {!replying && (
-            <button className="btn btn-secondary text-xs" onClick={() => setReplying(true)}>
-              <Icon name="MailOpen" size={12} /> Log payer reply
-            </button>
-          )}
+          <button className="btn btn-secondary text-xs" onClick={() => setReplying(true)}>
+            <Icon name="MailOpen" size={12} /> Log payer reply
+          </button>
         </div>
-      )}
-      {replying && (
-        <ReplyForm
-          enrollmentId={e.id}
-          onCancel={() => setReplying(false)}
-          onSaved={() => {
-            setReplying(false);
-            q.reload();
-            onChanged?.();
-          }}
-        />
       )}
       {q.error ? (
         <ErrorState message={q.error} onRetry={q.reload} />
@@ -155,13 +146,31 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
         </ul>
       )}
     </Modal>
+      {replying && (
+        <ReplyModal
+          enrollment={e}
+          ourAddress={setup.data?.from || ""}
+          lastSent={(q.data || []).find((t) => t.status !== "received" && t.to) || null}
+          onCancel={() => setReplying(false)}
+          onSaved={() => {
+            setReplying(false);
+            q.reload();
+            onChanged?.();
+          }}
+        />
+      )}
+    </>
   );
 }
 
-/** A reply the payer sent (e.g. to a mailbox the system doesn't read), logged on the enrollment. */
-function ReplyForm({ enrollmentId, onCancel, onSaved }: { enrollmentId: number; onCancel: () => void; onSaved: () => void }) {
+/** Log a reply the payer sent (e.g. to a mailbox the system doesn't read) — laid out like the Payer Submission email. */
+function ReplyModal({ enrollment: e, ourAddress, lastSent, onCancel, onSaved }: { enrollment: Enrollment; ourAddress: string; lastSent: Touch | null; onCancel: () => void; onSaved: () => void }) {
   const toast = useToast();
-  const [f, setF] = useState({ from: "", subject: "", body: "" });
+  const [f, setF] = useState({
+    from: lastSent?.to || "",
+    subject: lastSent?.subject ? (/^re:/i.test(lastSent.subject) ? lastSent.subject : "Re: " + lastSent.subject) : "",
+    body: "",
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f, v: string) => {
@@ -169,15 +178,15 @@ function ReplyForm({ enrollmentId, onCancel, onSaved }: { enrollmentId: number; 
     setErrors((x) => ({ ...x, [k]: "" }));
   };
   const save = async () => {
-    const e: Record<string, string> = {};
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.from.trim())) e.from = "Enter a valid email address";
-    if (!f.subject.trim()) e.subject = "Subject is required";
-    if (!f.body.trim()) e.body = "Enter the reply";
-    setErrors(e);
-    if (Object.keys(e).length) return;
+    const er: Record<string, string> = {};
+    if (!/^[^@s]+@[^@s]+.[^@s]+$/.test(f.from.trim())) er.from = "Enter a valid email address";
+    if (!f.subject.trim()) er.subject = "Subject is required";
+    if (!f.body.trim()) er.body = "Enter the reply";
+    setErrors(er);
+    if (Object.keys(er).length) return;
     setBusy(true);
     try {
-      await api.post("/payer-workflows/" + enrollmentId + "/reply", { from: f.from.trim(), subject: f.subject.trim(), body: f.body });
+      await api.post("/payer-workflows/" + e.id + "/reply", { from: f.from.trim(), subject: f.subject.trim(), body: f.body });
       toast("Payer reply logged");
       onSaved();
     } catch (err) {
@@ -188,24 +197,29 @@ function ReplyForm({ enrollmentId, onCancel, onSaved }: { enrollmentId: number; 
     }
   };
   return (
-    <div className="rounded-lg border border-line p-3 mb-3 space-y-2" style={{ background: "var(--bg-soft)" }} data-reply-form>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Field label="From (payer)" required error={errors.from}>
-          <input type="email" value={f.from} onChange={(e) => set("from", e.target.value)} className={"input" + (errors.from ? " input-error" : "")} maxLength={255} aria-label="Reply from" />
-        </Field>
+    <Modal title={"Log reply from " + (e.payerName || "the payer")} onClose={busy ? undefined : onCancel} maxWidth={720}>
+      <div className="space-y-3" data-reply-form>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="From" required error={errors.from}>
+            <input type="email" value={f.from} onChange={(x) => set("from", x.target.value)} className={"input" + (errors.from ? " input-error" : "")} maxLength={255} aria-label="Reply from" />
+          </Field>
+          <Field label="To">
+            <input value={ourAddress || "Not configured on the server"} disabled readOnly className="input" aria-label="Reply to" style={{ background: "var(--bg-soft)", color: "var(--ink-light)", cursor: "not-allowed" }} />
+          </Field>
+        </div>
         <Field label="Subject" required error={errors.subject}>
-          <input value={f.subject} onChange={(e) => set("subject", e.target.value)} className={"input" + (errors.subject ? " input-error" : "")} maxLength={255} aria-label="Reply subject" />
+          <input value={f.subject} onChange={(x) => set("subject", x.target.value)} className={"input" + (errors.subject ? " input-error" : "")} maxLength={255} aria-label="Reply subject" />
         </Field>
+        <Field label="Message" required error={errors.body}>
+          <textarea value={f.body} onChange={(x) => set("body", x.target.value)} className={"input font-mono text-xs" + (errors.body ? " input-error" : "")} rows={12} maxLength={20000} aria-label="Reply message" />
+        </Field>
+        <div className="flex justify-end gap-2 pt-3 border-t border-line flex-wrap">
+          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button className="btn btn-primary" onClick={save} disabled={busy}>
+            {busy ? <span className="loader" style={{ borderTopColor: "white" }} /> : <Icon name="Save" size={13} />} Log reply
+          </button>
+        </div>
       </div>
-      <Field label="Reply" required error={errors.body}>
-        <textarea value={f.body} onChange={(e) => set("body", e.target.value)} className={"input" + (errors.body ? " input-error" : "")} rows={4} maxLength={20000} aria-label="Reply message" />
-      </Field>
-      <div className="flex justify-end gap-2">
-        <button className="btn btn-ghost text-xs" onClick={onCancel} disabled={busy}>Cancel</button>
-        <button className="btn btn-primary text-xs" onClick={save} disabled={busy}>
-          {busy ? <span className="loader" style={{ borderTopColor: "white" }} /> : <Icon name="Save" size={12} />} Log reply
-        </button>
-      </div>
-    </div>
+    </Modal>
   );
 }

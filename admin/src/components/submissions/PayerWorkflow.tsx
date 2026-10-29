@@ -745,7 +745,7 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
   const [form, setForm] = useState(() => ({ to: card.supportEmail || "", nextFollowUp: addDays(todayISO(), meta.followUpCadenceDays || 14), ...pick(first ? String(first.id) : "") }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  const fromLabel = setup.from ? (setup.fromName ? setup.fromName + " <" + setup.from + ">" : setup.from) : "Not configured on the server";
+  const fromLabel = setup.from || "Not configured on the server";
 
   const check = () => {
     const e: Record<string, string> = {};

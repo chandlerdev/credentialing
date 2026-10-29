@@ -42,7 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
  * The payers' replies to the emails sent from Payer Submission: the organization's mailbox (the sender address) is read
  * over IMAP and each reply is logged on the enrollment it answers — matched by its In-Reply-To / References headers
  * (the Message-ID of the email we sent), else by the sender being the address we wrote to with the same subject.
- * Read-only: nothing in the mailbox is changed. Off unless app.mail.inbox.enabled=true.
+ * Read-only: nothing in the mailbox is changed. On whenever email sending is on (app.mail.enabled), with the sending
+ * account (spring.mail.username / password) and its IMAP server (smtp.x → imap.x); app.mail.inbox.* overrides.
  */
 @Slf4j
 @Service
@@ -59,10 +60,12 @@ public class PayerInboxService {
     private final PayerRepository payerRepository;
     private final NotificationService notificationService;
 
-    @Value("${app.mail.inbox.enabled:false}")
+    @Value("${app.mail.inbox.enabled:${app.mail.enabled:false}}")
     private boolean enabled;
     @Value("${app.mail.inbox.host:}")
-    private String host;
+    private String inboxHost;
+    @Value("${spring.mail.host:}")
+    private String smtpHost;
     @Value("${app.mail.inbox.port:993}")
     private int port;
     @Value("${app.mail.inbox.username:${spring.mail.username:}}")
@@ -77,11 +80,20 @@ public class PayerInboxService {
     public record CheckResult(boolean enabled, int checked, int logged, String error) {
     }
 
-    public boolean enabled() {
-        return enabled && host != null && !host.isBlank() && username != null && !username.isBlank();
+    /** The IMAP server: app.mail.inbox.host, else the SMTP server with smtp. → imap. (smtp.ionos.com → imap.ionos.com). */
+    private String host() {
+        if (inboxHost != null && !inboxHost.isBlank()) return inboxHost.trim();
+        if (smtpHost == null || smtpHost.isBlank()) return "";
+        String h = smtpHost.trim();
+        return h.startsWith("smtp.") ? "imap." + h.substring(5) : h;
     }
 
-    @Scheduled(initialDelayString = "PT3M", fixedDelayString = "${app.mail.inbox.poll:PT10M}")
+    public boolean enabled() {
+        String host = host();
+        return enabled && !host.isBlank() && username != null && !username.isBlank() && password != null && !password.isBlank();
+    }
+
+    @Scheduled(initialDelayString = "PT3M", fixedDelayString = "${app.mail.inbox.poll:PT5M}")
     public void poll() {
         if (enabled()) check();
     }
@@ -96,7 +108,7 @@ public class PayerInboxService {
         int checked = 0, logged = 0;
         try {
             Store store = Session.getInstance(props).getStore("imaps");
-            store.connect(host, port, username, password);
+            store.connect(host(), port, username, password);
             try {
                 Folder folder = store.getFolder(folderName);
                 folder.open(Folder.READ_ONLY);

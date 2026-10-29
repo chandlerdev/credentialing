@@ -12,6 +12,8 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long>, J
 
     List<Enrollment> findByOrgId(Long orgId);
 
+    List<Enrollment> findByNextFollowUpDateLessThanEqual(java.time.LocalDate date);
+
     List<Enrollment> findByProviderId(Long providerId);
 
     List<Enrollment> findByOrgIdAndProviderId(Long orgId, Long providerId);

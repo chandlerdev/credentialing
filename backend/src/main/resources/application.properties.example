@@ -42,11 +42,12 @@ spring.mail.password=
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 spring.mail.properties.mail.smtp.ssl.enable=false
-# Payer replies: the sender mailbox (app.mail.from) read over IMAP; each reply is logged on its enrollment.
-# The username / password default to spring.mail.username / password.
-app.mail.inbox.enabled=false
-app.mail.inbox.host=imap.ionos.com
-app.mail.inbox.port=993
+# Payer replies: the sender mailbox (app.mail.from) is read over IMAP every 5 minutes and each reply is logged on
+# its enrollment. On whenever app.mail.enabled=true, with spring.mail.username / password and imap.<smtp domain>.
+# Override only if needed:
+#app.mail.inbox.enabled=false
+#app.mail.inbox.host=imap.ionos.com
+#app.mail.inbox.port=993
 
 # ---------- Fixed settings (same on every site) ----------
 # Flyway owns the schema; Hibernate never alters it.
