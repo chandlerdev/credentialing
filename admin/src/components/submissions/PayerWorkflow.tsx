@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ConfirmDialog, Modal } from "@/components/Modal";
 import { ErrorState, Loading } from "@/components/AsyncState";
 import { Field } from "@/components/Field";
 import { Icon } from "@/components/Icon";
 import { Select } from "@/components/Select";
 import { PayerLogo } from "@/components/payers/PayerLogo";
+import { mmss, outcomeFor, useBrowserCall, type CallResult } from "@/components/calling/useBrowserCall";
 import { api, ApiError, errorMessage } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { fmtDate, fmtTs, todayISO } from "@/lib/utils";
@@ -614,8 +615,24 @@ export function CallModal({ card, onClose, onLogged }: { card: PayerCard; onClos
     setF((x) => ({ ...x, [k]: v }));
     setErrors((e) => ({ ...e, [k]: "" }));
   };
+  // browser calling through Twilio (admin → Calling); else the phone app (tel:)
+  const onCallError = useCallback((m: string) => toast(m, "error"), [toast]);
+  const [keypad, setKeypad] = useState(false);
+  const [twilioMinutes, setTwilioMinutes] = useState<number | null>(null);
+  // after hang-up: the payer's answer fills in the outcome (and the minutes) — the caller can still change them
+  const onCallResult = useCallback((r: CallResult) => {
+    const o = outcomeFor(r);
+    if (o) setF((x) => (x.outcome ? x : { ...x, outcome: o }));
+    setTwilioMinutes(r.seconds ? Math.max(1, Math.round(r.seconds / 60)) : null);
+    setKeypad(false);
+  }, []);
+  const bc = useBrowserCall(card.enrollmentId, onCallError, onCallResult);
   const start = () => {
     if (!phone) return;
+    if (bc.enabled) {
+      bc.start(phone);
+      return;
+    }
     started.current = Date.now();
     setInCall(true);
     window.location.href = telHref(phone);
@@ -630,7 +647,7 @@ export function CallModal({ card, onClose, onLogged }: { card: PayerCard; onClos
     if (Object.keys(e).length) return;
     setSaving(true);
     try {
-      const minutes = started.current ? Math.max(1, Math.round((Date.now() - started.current) / 60000)) : null;
+      const minutes = twilioMinutes ?? (started.current ? Math.max(1, Math.round((Date.now() - started.current) / 60000)) : null);
       const next = await api.post<PayerFlow>("/payer-workflows/" + card.enrollmentId + "/call", {
         outcome: f.outcome,
         ref: f.ref.trim() || null,
@@ -650,7 +667,7 @@ export function CallModal({ card, onClose, onLogged }: { card: PayerCard; onClos
   };
 
   return (
-    <Modal title={"Call " + card.name} onClose={saving ? undefined : onClose} maxWidth={480}>
+    <Modal title={"Call " + card.name} onClose={saving || bc.active ? undefined : onClose} maxWidth={480}>
       <div className="space-y-3">
         {phone ? (
           <a href={telHref(phone)} className="block font-mono text-2xl font-bold" style={{ color: "#16a34a" }} onClick={() => (started.current = started.current || Date.now())} data-call-number>
@@ -661,7 +678,11 @@ export function CallModal({ card, onClose, onLogged }: { card: PayerCard; onClos
             No support phone is set for {card.name}. Add it to the payer (Support Phone), or log a call made another way below.
           </div>
         )}
-        <p className="text-xs text-ink-faint">{inCall ? "Call started — log the outcome when you're done." : "Opens your phone app (tel:). The call is logged on the enrollment."}</p>
+        {bc.enabled ? (
+          <BrowserCallPanel bc={bc} keypad={keypad} setKeypad={setKeypad} callerId={bc.callerId} />
+        ) : (
+          <p className="text-xs text-ink-faint">{inCall ? "Call started — log the outcome when you're done." : "Opens your phone app (tel:). The call is logged on the enrollment."}</p>
+        )}
         <Field label="Call outcome" required error={errors.outcome}>
           <Select value={f.outcome} onChange={(e) => set("outcome", e.target.value)} className={"input" + (errors.outcome ? " input-error" : "")} aria-label="Call status">
             <option value="">— Choose outcome —</option>
@@ -682,18 +703,64 @@ export function CallModal({ card, onClose, onLogged }: { card: PayerCard; onClos
           <input type="date" value={f.nextFollowUp} min={todayISO()} onChange={(e) => set("nextFollowUp", e.target.value)} className={"input" + (errors.nextFollowUp ? " input-error" : "")} aria-label="Next follow-up date" />
         </Field>
         <div className="flex justify-end gap-2 pt-1 flex-wrap">
-          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving || bc.active}>
             Cancel
           </button>
-          <button className="btn text-white" style={{ background: "#2563eb" }} onClick={start} disabled={!phone || saving}>
-            Start call
-          </button>
-          <button className="btn btn-secondary" onClick={log} disabled={saving || !meta.data}>
+          {bc.active ? (
+            <button className="btn text-white" style={{ background: "#dc2626" }} onClick={bc.hangUp} aria-label="Hang up">
+              <Icon name="PhoneOff" size={13} /> Hang up
+            </button>
+          ) : (
+            <button className="btn text-white" style={{ background: "#2563eb" }} onClick={start} disabled={!phone || saving || bc.checking}>
+              Start call
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={log} disabled={saving || !meta.data || bc.active}>
             {saving && <span className="loader" />} Log call
           </button>
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** The browser call's live state: connecting / ringing / in call (timer, mute, keypad) / ended. */
+function BrowserCallPanel({ bc, keypad, setKeypad, callerId }: { bc: ReturnType<typeof useBrowserCall>; keypad: boolean; setKeypad: (v: boolean) => void; callerId: string | null }) {
+  const label =
+    bc.phase === "connecting" ? "Connecting…" : bc.phase === "ringing" ? "Ringing…" : bc.phase === "in-call" ? "In call · " + mmss(bc.seconds) : bc.phase === "ended" ? "Call ended" + (bc.result?.seconds ? " · " + mmss(bc.result.seconds) : "") + (bc.result?.dialStatus && bc.result.dialStatus !== "completed" ? " · " + bc.result.dialStatus.replace("-", " ") : "") : null;
+  return (
+    <div className="space-y-2" data-browser-call={bc.phase}>
+      <p className="text-xs text-ink-faint">
+        {bc.phase === "idle" ? "Calls from your browser (microphone / headset) through Twilio" + (callerId ? " from " + callerId : "") + ". Not recorded." : bc.phase === "ended" ? "The outcome is filled in from the call — add the notes and log it." : "Use the keypad for the payer's phone menu."}
+      </p>
+      {label && (
+        <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 flex-wrap" style={{ background: bc.phase === "in-call" ? "var(--success-soft)" : "var(--bg-soft)" }}>
+          <span className="text-sm font-semibold flex items-center gap-2" data-call-phase>
+            {bc.phase === "connecting" || bc.phase === "ringing" ? <span className="loader" /> : <Icon name={bc.phase === "in-call" ? "PhoneCall" : "PhoneOff"} size={14} />}
+            {label}
+          </span>
+          {bc.phase === "in-call" && (
+            <div className="flex gap-1.5">
+              <button className="btn btn-secondary text-xs" style={{ padding: "4px 8px" }} onClick={bc.toggleMute} aria-pressed={bc.muted}>
+                <Icon name={bc.muted ? "MicOff" : "Mic"} size={12} /> {bc.muted ? "Unmute" : "Mute"}
+              </button>
+              <button className="btn btn-secondary text-xs" style={{ padding: "4px 8px" }} onClick={() => setKeypad(!keypad)} aria-pressed={keypad}>
+                <Icon name="Grid3x3" size={12} /> Keypad
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {bc.phase === "in-call" && keypad && (
+        <div className="grid grid-cols-3 gap-1.5 max-w-[220px] mx-auto" data-keypad>
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((d) => (
+            <button key={d} className="btn btn-secondary font-mono text-base" style={{ padding: "8px 0" }} onClick={() => bc.sendDigit(d)}>
+              {d}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
