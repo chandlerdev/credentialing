@@ -10,7 +10,7 @@ import { PayerLogo } from "@/components/payers/PayerLogo";
 import { mmss, outcomeFor, useBrowserCall, type CallResult } from "@/components/calling/useBrowserCall";
 import { api, ApiError, errorMessage } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
-import { fmtDate, fmtTs, todayISO } from "@/lib/utils";
+import { fmtDate, fmtTsZone, todayISO } from "@/lib/utils";
 import { useAuth } from "@/stores/auth";
 import { useToast } from "@/stores/toast";
 import type { PayerCard, PayerFlow, Workflow, WorkflowMeta } from "@/types/payerWorkflow";
@@ -341,7 +341,7 @@ function WorkflowBody({
                 {f.log.map((l) => (
                   <li key={l.id} className="text-xs border-l-2 pl-2" style={{ borderColor: l.type === "call" ? "#2563eb" : l.type === "email" ? "var(--accent)" : l.type === "stage" ? "var(--success)" : "var(--border-strong)" }} data-log={l.type}>
                     <div className="text-[10px] text-ink-faint">
-                      {fmtTs(l.at)}
+                      {fmtTsZone(l.at)}
                       {l.by ? " · " + l.by : ""}
                     </div>
                     <div className="text-ink">{l.text}</div>

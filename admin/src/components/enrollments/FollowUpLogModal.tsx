@@ -7,7 +7,7 @@ import { ErrorState, Loading } from "@/components/AsyncState";
 import { Icon } from "@/components/Icon";
 import { api, errorMessage } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
-import { fmtDate, fmtTs } from "@/lib/utils";
+import { fmtDate, fmtTsZone } from "@/lib/utils";
 import { useToast } from "@/stores/toast";
 import type { Enrollment } from "@/types/enrollments";
 
@@ -96,7 +96,7 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
                     <Icon name={isCall ? "Phone" : received ? "MailOpen" : "Mail"} size={13} />
                     <span className="break-words">{isCall ? t.outcome || "Call" : t.subject || "(no subject)"}</span>
                   </div>
-                  <span className="text-[11px] text-ink-faint whitespace-nowrap">{fmtTs(t.at)}</span>
+                  <span className="text-[11px] text-ink-faint whitespace-nowrap">{fmtTsZone(t.at)}</span>
                 </div>
                 <div className="text-xs text-ink-light mt-1 flex flex-wrap gap-x-4 gap-y-0.5 items-center">
                   {isCall ? (

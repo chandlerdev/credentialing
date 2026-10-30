@@ -90,7 +90,8 @@ public class PayerWorkflowService {
                        String stepShort, String statusLabel, String statusTone, boolean approved, String enrollmentStatus) {
     }
 
-    public record LogItem(Long id, String type, String text, LocalDateTime at, String by) {
+    /** at: with the server's offset, so the browser shows it in the viewer's own time (and zone). */
+    public record LogItem(Long id, String type, String text, java.time.OffsetDateTime at, String by) {
     }
 
     public record ProviderInfo(Long id, String name, String credentials, String npi, String caqhId, String email) {
@@ -232,7 +233,7 @@ public class PayerWorkflowService {
         if (e.getSubmittedDate() != null) fields.put("submittedDate", e.getSubmittedDate().toString());
         if (e.getEffectiveDate() != null) fields.put("effectiveDate", e.getEffectiveDate().toString());
         List<LogItem> log = logRepository.findByEnrollmentIdOrderByIdDesc(e.getId()).stream()
-                .map(l -> new LogItem(l.getId(), l.getLogType(), l.getText(), l.getCreatedAt(), l.getCreatedByName())).toList();
+                .map(l -> new LogItem(l.getId(), l.getLogType(), l.getText(), zoned(l.getCreatedAt()), l.getCreatedByName())).toList();
         Card c = card(e, p);
         return new Flow(c, new ProviderInfo(pr.getId(), plainName(pr), pr.getSuffix(), pr.getNpi(), pr.getCaqhId(), pr.getEmail()),
                 c.step(), e.getWfMethod(), read(e.getWfTasks()), fields, read(e.getWfDocs()), read(e.getWfStepStarted()), log,
@@ -531,7 +532,7 @@ public class PayerWorkflowService {
         if (next != null && next.isBefore(LocalDate.now())) throw BadRequestException.onField("nextFollowUp", "Choose today or a later date");
     }
 
-    public record Touch(Long id, LocalDateTime at, String by, String text, String outcome, Boolean attended, String ref, Integer minutes,
+    public record Touch(Long id, java.time.OffsetDateTime at, String by, String text, String outcome, Boolean attended, String ref, Integer minutes,
                         String notes, LocalDate nextFollowUp, String from, String to, String subject, String body, String status) {
     }
 
@@ -594,6 +595,11 @@ public class PayerWorkflowService {
         return inboxService.check();
     }
 
+    /** The log times are the server's local time: send them with its offset (e.g. 2026-10-30T07:21:00-05:00). */
+    static java.time.OffsetDateTime zoned(LocalDateTime t) {
+        return t == null ? null : t.atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime();
+    }
+
     private static Touch touch(EnrollmentWorkflowLog l) {
         String notes = l.getCallNotes();
         LocalDate next = l.getNextFollowUp();
@@ -606,7 +612,7 @@ public class PayerWorkflowService {
                 next = null;
             }
         }
-        return new Touch(l.getId(), l.getCreatedAt(), l.getCreatedByName(), l.getText(), l.getCallOutcome(), l.getCallAttended(), l.getCallRef(),
+        return new Touch(l.getId(), zoned(l.getCreatedAt()), l.getCreatedByName(), l.getText(), l.getCallOutcome(), l.getCallAttended(), l.getCallRef(),
                 l.getCallMinutes(), notes, next, l.getEmailFrom(), l.getEmailTo(), l.getEmailSubject(), l.getEmailBody(), l.getEmailStatus());
     }
 

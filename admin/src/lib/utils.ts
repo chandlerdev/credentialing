@@ -32,6 +32,21 @@ export const fmtTs = (ts?: string | Date | null) => {
   return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 };
 
+/** The viewer's time-zone abbreviation for a moment: IST, EST / EDT, CST / CDT, PST… (else e.g. GMT+4). */
+export const tzAbbr = (d: Date) => {
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (zone === "Asia/Kolkata" || zone === "Asia/Calcutta") return "IST";
+  return new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(d).find((p) => p.type === "timeZoneName")?.value || "";
+};
+
+/** A date and time with the time zone it is shown in: "Oct 30, 2026, 7:21 AM IST". */
+export const fmtTsZone = (ts?: string | Date | null) => {
+  if (!ts) return "—";
+  const d = parse(ts);
+  if (isNaN(d.getTime())) return String(ts);
+  return fmtTs(d) + " " + tzAbbr(d);
+};
+
 export const todayISO = () => {
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
