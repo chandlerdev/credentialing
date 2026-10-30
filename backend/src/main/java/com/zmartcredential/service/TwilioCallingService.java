@@ -139,7 +139,9 @@ public class TwilioCallingService {
     private void verifyAndConnect(CallingSettings s) {
         String sid = s.getAccountSid(), token = crypto.decrypt(s.getAuthTokenEnc());
         if (get(sid, token, "/Accounts/" + sid + ".json") == null) throw BadRequestException.onField("authToken", "Twilio rejected the Account SID / Auth Token");
-        if (get(s.getApiKeySid(), crypto.decrypt(s.getApiKeySecretEnc()), "/Accounts/" + sid + ".json") == null)
+        // a Standard API key can't read the Account resource itself (Twilio only lets the Auth Token / Main keys do that),
+        // so the key is checked on a resource every key may read: the account's applications
+        if (get(s.getApiKeySid(), crypto.decrypt(s.getApiKeySecretEnc()), "/Accounts/" + sid + "/Applications.json?PageSize=1") == null)
             throw BadRequestException.onField("apiKeySecret", "Twilio rejected the API Key SID / Secret (the key must belong to this account)");
         String q = "?PhoneNumber=" + URLEncoder.encode(s.getPhoneNumber(), StandardCharsets.UTF_8);
         JsonNode owned = get(sid, token, "/Accounts/" + sid + "/IncomingPhoneNumbers.json" + q);
@@ -148,7 +150,8 @@ public class TwilioCallingService {
         if (!ok) throw BadRequestException.onField("phoneNumber", "This number isn't a Twilio number (or verified caller ID) of this account");
 
         Map<String, String> form = new LinkedHashMap<>();
-        form.put("FriendlyName", "ZmartCredential calling");
+        // one calling app per site (testing / live) in the same Twilio account: each has its own Voice URL
+        form.put("FriendlyName", "ZmartCredential calling - " + URI.create(mailService.publicUrl()).getHost());
         form.put("VoiceUrl", mailService.publicUrl() + VOICE_PATH);
         form.put("VoiceMethod", "POST");
         JsonNode app = null;
