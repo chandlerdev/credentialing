@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_PHONE_CODE, digitsOnly, joinPhone, splitPhone } from "@/lib/validation";
+import { DEFAULT_PHONE_CODE, joinPhone, splitPhone, usPhoneDigits } from "@/lib/validation";
 
 /**
  * Phone / mobile input used everywhere: the country code +1 (fixed for now) and a 10-digit number.
@@ -37,11 +37,11 @@ export function PhoneInput({
       <input
         id={id}
         value={parts.digits}
-        onChange={(e) => onChange(joinPhone(DEFAULT_PHONE_CODE, digitsOnly(e.target.value, 10)))}
+        onChange={(e) => onChange(joinPhone(DEFAULT_PHONE_CODE, usPhoneDigits(e.target.value)))}
         className={"input font-mono flex-1 min-w-0" + (invalid ? " input-error" : "")}
         inputMode="numeric"
         placeholder={placeholder || undefined}
-        maxLength={10}
+        maxLength={18} /* room for a pasted "+1 (281) 884-3247"; the value keeps the 10 digits */
         disabled={disabled}
         autoComplete={autoComplete}
       />

@@ -5,6 +5,16 @@
 /** Keeps digits only (phone, NPI, ZIP). */
 export const digitsOnly = (v: string, max: number) => v.replace(/\D/g, "").slice(0, max);
 
+/**
+ * The 10-digit US number from what was typed or pasted: "+12818843247", "1 (281) 884-3247" and "2818843247" all give
+ * "2818843247" (the country code 1 is dropped; US area codes never start with 1).
+ */
+export const usPhoneDigits = (v: string) => {
+  let d = v.replace(/\D/g, "");
+  if (d.length > 10 && d.startsWith("1")) d = d.slice(1);
+  return d.slice(0, 10);
+};
+
 /** Tax ID: letters, digits and hyphen, upper-cased. */
 export const taxIdChars = (v: string) => v.replace(/[^A-Za-z0-9-]/g, "").toUpperCase().slice(0, 20);
 
