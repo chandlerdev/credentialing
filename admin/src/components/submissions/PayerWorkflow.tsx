@@ -230,13 +230,17 @@ function WorkflowBody({
                     </a>
                   ) : null
                 ) : a === "call" ? (
-                  <button key={a} className="btn btn-secondary text-xs" onClick={onCall} disabled={!editable}>
-                    <Icon name="Phone" size={12} /> Call payer
-                  </button>
+                  c.supportPhone ? (
+                    <button key={a} className="btn btn-secondary text-xs" onClick={onCall} disabled={!editable}>
+                      <Icon name="Phone" size={12} /> Call payer
+                    </button>
+                  ) : null
                 ) : a === "email" ? (
-                  <button key={a} className="btn btn-secondary text-xs" onClick={onEmail} disabled={!editable}>
-                    <Icon name="Mail" size={12} /> Email template
-                  </button>
+                  c.supportEmail ? (
+                    <button key={a} className="btn btn-secondary text-xs" onClick={onEmail} disabled={!editable}>
+                      <Icon name="Mail" size={12} /> Email template
+                    </button>
+                  ) : null
                 ) : (
                   <button key={a} className="btn btn-secondary text-xs" onClick={() => post("caqh", "caqh", undefined, "CAQH data imported")} disabled={!editable || busy === "caqh"}>
                     <Icon name="Download" size={12} /> Import from CAQH
@@ -261,7 +265,7 @@ function WorkflowBody({
                     onClick={async () => {
                       await post("method", "method", { method: m });
                       if (m === "portal" && c.portalUrl) window.open(c.portalUrl, "_blank", "noopener,noreferrer");
-                      if (m === "phone") onCall();
+                      if (m === "phone" && c.supportPhone) onCall();
                     }}
                     className="card px-3 py-2 text-left flex items-center gap-2"
                     style={f.method === m ? { borderColor: "var(--accent)", boxShadow: "0 0 0 1px var(--accent)" } : undefined}
@@ -557,12 +561,16 @@ function Summary({ f, wf, meta, approved, onCall, onEmail, editable }: { f: Paye
         {due.map((m) => row(m.label, fmtDate(m.due)))}
       </dl>
       <div className="flex gap-2 flex-wrap">
-        <button className="btn btn-secondary text-xs" onClick={onCall} disabled={!editable}>
-          <Icon name="Phone" size={12} /> Call
-        </button>
-        <button className="btn btn-secondary text-xs" onClick={onEmail} disabled={!editable}>
-          <Icon name="Mail" size={12} /> Email
-        </button>
+        {c.supportPhone && (
+          <button className="btn btn-secondary text-xs" onClick={onCall} disabled={!editable}>
+            <Icon name="Phone" size={12} /> Call
+          </button>
+        )}
+        {c.supportEmail && (
+          <button className="btn btn-secondary text-xs" onClick={onEmail} disabled={!editable}>
+            <Icon name="Mail" size={12} /> Email
+          </button>
+        )}
         {c.portalUrl && (
           <a className="btn btn-secondary text-xs" href={c.portalUrl} target="_blank" rel="noreferrer">
             <Icon name="Globe" size={12} /> Portal
@@ -809,14 +817,16 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
   };
   const suggested = suggestedTemplate(wf, f.step);
   const first = templates.find((t) => t.code === suggested) || templates[0];
-  const [form, setForm] = useState(() => ({ to: card.supportEmail || "", nextFollowUp: addDays(todayISO(), meta.followUpCadenceDays || 14), ...pick(first ? String(first.id) : "") }));
+  // To: always the payer's Support Email (set by the super admin), not editable — the server sends only there
+  const payerEmail = (card.supportEmail || "").trim();
+  const [form, setForm] = useState(() => ({ nextFollowUp: addDays(todayISO(), meta.followUpCadenceDays || 14), ...pick(first ? String(first.id) : "") }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const fromLabel = setup.from || "Not configured on the server";
 
   const check = () => {
     const e: Record<string, string> = {};
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.to.trim())) e.to = "Enter a valid email address";
+    if (!payerEmail) e.to = "This payer has no support email — the super admin adds it on the payer (Support Email)";
     if (!form.subject.trim()) e.subject = "Subject is required";
     if (!form.body.trim()) e.body = "Message is required";
     const ne = checkNextFollowUp(form.nextFollowUp);
@@ -828,9 +838,9 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
     if (!check()) return;
     setBusy(send ? "send" : "draft");
     try {
-      const next = await api.post<PayerFlow>("/payer-workflows/" + card.enrollmentId + "/email", { to: form.to.trim(), subject: form.subject, body: form.body, template: form.template || null, send, nextFollowUp: form.nextFollowUp });
-      if (!send) window.location.href = "mailto:" + encodeURIComponent(form.to.trim()) + "?subject=" + encodeURIComponent(form.subject) + "&body=" + encodeURIComponent(form.body);
-      toast(send ? "Email sent to " + form.to.trim() : "Email opened in your mail app and logged");
+      const next = await api.post<PayerFlow>("/payer-workflows/" + card.enrollmentId + "/email", { subject: form.subject, body: form.body, template: form.template || null, send, nextFollowUp: form.nextFollowUp });
+      if (!send) window.location.href = "mailto:" + encodeURIComponent(payerEmail) + "?subject=" + encodeURIComponent(form.subject) + "&body=" + encodeURIComponent(form.body);
+      toast(send ? "Email sent to " + payerEmail : "Email opened in your mail app and logged");
       onLogged(next);
       onClose();
     } catch (e) {
@@ -842,7 +852,7 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
   };
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText("To: " + form.to + "\nSubject: " + form.subject + "\n\n" + form.body);
+      await navigator.clipboard.writeText("To: " + payerEmail + "\nSubject: " + form.subject + "\n\n" + form.body);
       toast("Copied to clipboard");
     } catch {
       toast("Copy blocked by the browser", "error");
@@ -868,7 +878,15 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
             <input value={fromLabel} disabled readOnly className="input" aria-label="From" style={{ background: "var(--bg-soft)", color: "var(--ink-light)", cursor: "not-allowed" }} />
           </Field>
           <Field label="To" required error={errors.to}>
-            <input type="email" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} className={"input" + (errors.to ? " input-error" : "")} aria-label="To" />
+            <input
+              value={payerEmail || "No support email set for this payer"}
+              disabled
+              readOnly
+              className={"input" + (errors.to ? " input-error" : "")}
+              aria-label="To"
+              style={{ background: "var(--bg-soft)", color: payerEmail ? "var(--ink-light)" : "#b91c1c", cursor: "not-allowed" }}
+            />
+            {!payerEmail && !errors.to && <div className="text-[11px] mt-1" style={{ color: "#b91c1c" }}>The super admin adds the payer&apos;s Support Email (super admin → Payers).</div>}
           </Field>
         </div>
         <Field label="Subject" required error={errors.subject}>
@@ -878,11 +896,9 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
           <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} className={"input font-mono text-xs" + (errors.body ? " input-error" : "")} rows={12} aria-label="Message" />
         </Field>
         <NextFollowUpField value={form.nextFollowUp} onChange={(v) => setForm({ ...form, nextFollowUp: v })} error={errors.nextFollowUp} />
-        <div className="text-[11px] text-ink-faint">
-          {setup.inboxEnabled
-            ? "The payer's reply to this email is logged on the enrollment automatically (Enrollments → email follow-ups)."
-            : "Log the payer's reply in Enrollments → email follow-ups (Log payer reply)."}
-        </div>
+        {setup.inboxEnabled && (
+          <div className="text-[11px] text-ink-faint">The payer&apos;s reply to this email is logged on the enrollment automatically (Enrollments → email follow-ups).</div>
+        )}
         <div className="flex justify-end gap-2 pt-3 border-t border-line flex-wrap">
           <button className="btn btn-ghost" onClick={onClose} disabled={busy !== null}>
             Cancel
@@ -890,10 +906,10 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
           <button className="btn btn-secondary" onClick={copy} disabled={busy !== null}>
             <Icon name="Copy" size={13} /> Copy
           </button>
-          <button className="btn btn-secondary" onClick={() => record(false)} disabled={busy !== null} title="Opens your mail app with this email and logs it">
+          <button className="btn btn-secondary" onClick={() => record(false)} disabled={busy !== null || !payerEmail} title="Opens your mail app with this email and logs it">
             {busy === "draft" ? <span className="loader" /> : <Icon name="ExternalLink" size={13} />} Open in email
           </button>
-          <button className="btn btn-primary" onClick={() => record(true)} disabled={busy !== null}>
+          <button className="btn btn-primary" onClick={() => record(true)} disabled={busy !== null || !payerEmail}>
             {busy === "send" ? <span className="loader" style={{ borderTopColor: "white" }} /> : <Icon name="Send" size={13} />} Send
           </button>
         </div>

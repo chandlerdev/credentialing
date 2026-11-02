@@ -161,12 +161,17 @@ function PayerCardView({
         </div>
       </dl>
       <div className="flex gap-2">
-        <button className="btn btn-secondary text-xs" style={{ padding: "5px 10px" }} onClick={onCall} disabled={!canWork} title={c.supportPhone ? "Call " + c.supportPhone : "No support phone on the payer yet"} aria-label={"Call " + c.name}>
-          <Icon name="Phone" size={12} /> Call
-        </button>
-        <button className="btn btn-secondary text-xs" style={{ padding: "5px 10px" }} onClick={onEmail} disabled={!canWork} title={c.supportEmail ? "Email " + c.supportEmail : "Email the payer"} aria-label={"Email " + c.name}>
-          <Icon name="Mail" size={12} /> Email
-        </button>
+        {/* like the globe: Call only with the payer's support phone, Email only with its support email */}
+        {c.supportPhone && (
+          <button className="btn btn-secondary text-xs" style={{ padding: "5px 10px" }} onClick={onCall} disabled={!canWork} title={"Call " + c.supportPhone} aria-label={"Call " + c.name}>
+            <Icon name="Phone" size={12} /> Call
+          </button>
+        )}
+        {c.supportEmail && (
+          <button className="btn btn-secondary text-xs" style={{ padding: "5px 10px" }} onClick={onEmail} disabled={!canWork} title={"Email " + c.supportEmail} aria-label={"Email " + c.name}>
+            <Icon name="Mail" size={12} /> Email
+          </button>
+        )}
         {/* only payers with a portal get the globe */}
         {c.portalUrl && (
           <button

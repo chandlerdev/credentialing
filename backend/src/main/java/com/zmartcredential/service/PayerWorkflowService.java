@@ -478,8 +478,11 @@ public class PayerWorkflowService {
     @Transactional
     public Flow email(Long id, EmailRequest r) {
         Enrollment e = editable(id);
-        String to = r.to() == null ? "" : r.to().trim();
-        if (!to.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) throw BadRequestException.onField("to", "Enter a valid email address");
+        // always the payer's Support Email set by the super admin — whatever "to" the browser sent is ignored
+        Payer payer = support.payer(e.getPayerId());
+        String to = payer.getSupportEmail() == null ? "" : payer.getSupportEmail().trim();
+        if (to.isEmpty()) throw BadRequestException.onField("to", "This payer has no support email — the super admin adds it on the payer (Support Email)");
+        if (!to.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) throw BadRequestException.onField("to", "The payer's support email isn't valid — the super admin can correct it on the payer");
         if (r.subject() == null || r.subject().isBlank()) throw BadRequestException.onField("subject", "Subject is required");
         if (r.body() == null || r.body().isBlank()) throw BadRequestException.onField("body", "Message is required");
         checkNext(r.nextFollowUp());
