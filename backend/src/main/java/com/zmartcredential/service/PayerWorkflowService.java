@@ -619,10 +619,19 @@ public class PayerWorkflowService {
     /** Enrollments → the call or e-mail follow-ups of an enrollment, newest first. */
     @Transactional(readOnly = true)
     public List<Touch> touches(Long enrollmentId, String type) {
-        permissionService.require("enrollment", "read");
-        authContext.requireStaff();
         if (!"call".equals(type) && !"email".equals(type)) throw new BadRequestException("Choose call or email");
-        Enrollment e = load(enrollmentId);
+        Enrollment e;
+        if (authContext.principal().isProvider()) {
+            // provider portal → My Enrollments: read-only, their own enrollments only
+            Long own = authContext.requireOwnProviderId();
+            e = enrollmentRepository.findById(enrollmentId)
+                    .filter(x -> own.equals(x.getProviderId()) && java.util.Objects.equals(x.getOrgId(), authContext.orgIdOrNull()))
+                    .orElseThrow(() -> com.zmartcredential.exception.NotFoundException.of("Enrollment", enrollmentId));
+        } else {
+            permissionService.require("enrollment", "read");
+            authContext.requireStaff();
+            e = load(enrollmentId);
+        }
         return logRepository.findByEnrollmentIdOrderByIdDesc(e.getId()).stream().filter(l -> type.equals(l.getLogType()))
                 .map(PayerWorkflowService::touch).toList();
     }

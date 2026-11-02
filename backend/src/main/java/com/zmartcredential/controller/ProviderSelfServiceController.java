@@ -24,6 +24,7 @@ import java.util.List;
 public class ProviderSelfServiceController {
 
     private final ProviderService providerService;
+    private final com.zmartcredential.service.EnrollmentService enrollmentService;
 
     @Operation(summary = "Own provider profile with documents and progress")
     @GetMapping("/provider")
@@ -41,6 +42,12 @@ public class ProviderSelfServiceController {
     @PutMapping("/provider/profile")
     public ProviderDetail updateProfile(@Valid @RequestBody com.zmartcredential.dto.provider.ProviderDtos.ProviderUpdateRequest req) {
         return providerService.updateMyProfile(req);
+    }
+
+    @Operation(summary = "My Enrollments: own enrollments with every column of the admin list (read-only)")
+    @GetMapping("/enrollments/full")
+    public List<com.zmartcredential.dto.enrollment.EnrollmentResponse> enrollmentsFull() {
+        return enrollmentService.mine();
     }
 
     @Operation(summary = "Own enrollments")

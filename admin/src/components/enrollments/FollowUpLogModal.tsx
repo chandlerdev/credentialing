@@ -35,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = { sent: "Sent", drafted: "Opened in
 export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose, onChanged }: { enrollment: Enrollment; type: "call" | "email"; canLog?: boolean; onClose: () => void; onChanged?: () => void }) {
   const toast = useToast();
   const q = useAsync<Touch[]>(() => api.get("/payer-workflows/" + e.id + "/touches", { type }), [e.id, type]);
-  const setup = useAsync<{ inboxEnabled: boolean; from: string }>(type === "email" ? () => api.get("/payer-workflows/" + e.id + "/email-setup") : null, [e.id, type]);
+  const setup = useAsync<{ inboxEnabled: boolean; from: string }>(type === "email" && canLog ? () => api.get("/payer-workflows/" + e.id + "/email-setup") : null, [e.id, type, canLog]);
   const [checking, setChecking] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const isCall = type === "call";

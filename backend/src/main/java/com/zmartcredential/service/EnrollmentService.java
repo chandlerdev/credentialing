@@ -307,7 +307,10 @@ public class EnrollmentService {
             String ext = n.contains(".") ? n.substring(n.lastIndexOf('.') + 1) : "";
             if (!ACK_EXTENSIONS.contains(ext)) throw new BadRequestException("Only PDF, Word, JPG or PNG files can be uploaded");
         }
-        String key = storage.store(orgId, file);
+        com.zmartcredential.entity.Provider prov = support.provider(e.getProviderId(), orgId);
+        Payer filePayer = e.getPayerId() == null ? null : support.payer(e.getPayerId());
+        String key = storage.store(orgId, file, FileStorageService.providerFolder(prov) + "/Enrollments/" + (filePayer == null ? "Payer" : filePayer.getName()),
+                FileStorageService.label(type) + " - " + file.getOriginalFilename());
         EnrollmentFile f = new EnrollmentFile();
         f.setEnrollmentId(e.getId());
         String name = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank() ? "file" : file.getOriginalFilename();
@@ -522,6 +525,18 @@ public class EnrollmentService {
                 .stream().map(EnrollmentService::toEventResponse).toList());
         java.util.Collections.reverse(list);
         return list;
+    }
+
+    /** Provider portal → My Enrollments: the provider's own enrollments with every column of the admin list (read-only). */
+    @Transactional(readOnly = true)
+    public List<EnrollmentResponse> mine() {
+        Long providerId = authContext.requireOwnProviderId();
+        Long orgId = authContext.orgIdOrNull();
+        if (orgId == null) return List.of();
+        List<Enrollment> list = enrollmentRepository.findByOrgIdAndProviderId(orgId, providerId).stream()
+                .sorted(java.util.Comparator.comparing(Enrollment::getCreatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                .toList();
+        return toResponses(list, context(orgId));
     }
 
     public EnrollmentResponse toResponse(Enrollment e) {

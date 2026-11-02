@@ -76,7 +76,8 @@ public class ProviderAdditionalDocumentService {
         d.setTitle(title == null || title.isBlank() ? null : title.trim());
         d.setNotes(notes == null || notes.isBlank() ? null : notes.trim());
         d.setExpiresAt(exp);
-        d.setStorageKey(fileStorageService.store(p.getOrgId(), file));
+        d.setStorageKey(fileStorageService.store(p.getOrgId(), file, FileStorageService.providerFolder(p) + "/Additional Documents",
+                FileStorageService.label(docType) + " - " + file.getOriginalFilename()));
         String name = file.getOriginalFilename();
         if (name != null) {
             name = name.replace('\\', '/');
@@ -111,7 +112,8 @@ public class ProviderAdditionalDocumentService {
         LocalDate exp = ProviderDocumentService.parseDate(expiresAt);
         if (exp != null && exp.isBefore(LocalDate.now())) throw BadRequestException.onField("expiresAt", "Choose today or a later date");
         String oldKey = d.getStorageKey();
-        d.setStorageKey(fileStorageService.store(p.getOrgId(), file));
+        d.setStorageKey(fileStorageService.store(p.getOrgId(), file, FileStorageService.providerFolder(p) + "/Additional Documents",
+                FileStorageService.label(d.getDocType()) + " - " + file.getOriginalFilename()));
         d.setFileName(cleanName(file.getOriginalFilename()));
         d.setMimeType(file.getContentType() == null ? null : file.getContentType().substring(0, Math.min(100, file.getContentType().length())));
         d.setSizeBytes(file.getSize());

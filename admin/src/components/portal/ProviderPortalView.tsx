@@ -17,6 +17,7 @@ import { DocumentUploadView } from "@/components/providers/DocumentUploadView";
 import { ProviderForm } from "@/components/providers/ProviderForm";
 import { DownloadButton, MandatoryMark, ViewFileButton } from "@/components/providers/ProviderOverview";
 import { DocTableCols } from "@/components/providers/AdditionalDocuments";
+import { MyEnrollmentsTable } from "./MyEnrollmentsTable";
 import type { MyEnrollment, ProviderDetail } from "@/types/providers";
 
 /** Loads GET /me/provider; a 404 means no provider profile is linked to this account. */
@@ -341,56 +342,15 @@ function MyDocuments({ provider }: { provider: ProviderDetail }) {
 }
 
 /** Prototype ProviderPortalView "my_enrollments" (L3748). */
+/** My Enrollments: the provider's own enrollments, every column of the admin list, view only. */
 export function MyEnrollmentsView() {
   const { user } = useAuth();
-  const enrollments = useMyEnrollments();
-  const list = enrollments.data || [];
-  const active = list.filter((e) => e.status === "approved").length;
+  const [counts, setCounts] = useState<{ active: number; total: number } | null>(null);
   return (
     <div>
-      <PageHeader title="My Enrollments" subtitle={enrollments.data ? active + " active enrollment(s) · " + list.length + " total" : undefined} />
+      <PageHeader title="My Enrollments" subtitle={counts ? counts.active + " active enrollment(s) · " + counts.total + " total" : undefined} />
       {!user?.orgId && <NoOrganizationBanner />}
-      {enrollments.error ? (
-        <ErrorState message={enrollments.error} onRetry={enrollments.reload} />
-      ) : (
-        <div className="card overflow-hidden">
-          {enrollments.loading && !enrollments.data ? (
-            <Loading />
-          ) : list.length === 0 ? (
-            <EmptyState icon="ClipboardList" title="No enrollments yet" description="Your organization hasn't started any payer enrollments for you yet." />
-          ) : (
-            <div className="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Payer</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th>Approved</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((e) => (
-                    <tr key={e.id}>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: e.payerColor || "var(--ink-faint)" }}></div>
-                          <span className="font-medium">{e.payerName || "—"}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <StatusPill status={e.status} />
-                      </td>
-                      <td className="text-ink-light text-xs">{fmtDate(e.submittedDate)}</td>
-                      <td className="text-ink-light text-xs">{fmtDate(e.effectiveDate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      <MyEnrollmentsTable onLoaded={(list) => setCounts({ active: list.filter((e) => e.status === "approved").length, total: list.length })} />
     </div>
   );
 }

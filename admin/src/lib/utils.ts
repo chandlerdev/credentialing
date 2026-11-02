@@ -35,7 +35,8 @@ export const fmtTs = (ts?: string | Date | null) => {
 /** The viewer's time-zone abbreviation for a moment: IST, EST / EDT, CST / CDT, PST… (else e.g. GMT+4). */
 export const tzAbbr = (d: Date) => {
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  if (zone === "Asia/Kolkata" || zone === "Asia/Calcutta") return "IST";
+  // India: browsers name it Asia/Kolkata / Asia/Calcutta or only by its offset (GMT+5:30)
+  if (zone === "Asia/Kolkata" || zone === "Asia/Calcutta" || d.getTimezoneOffset() === -330) return "IST";
   return new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(d).find((p) => p.type === "timeZoneName")?.value || "";
 };
 

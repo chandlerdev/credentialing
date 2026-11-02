@@ -287,7 +287,8 @@ public class ProviderDocumentService {
      */
     ProviderDocument storeInto(Provider provider, String docType, MultipartFile file, LocalDate expiresAt,
                                boolean approve, String relativePath, Long userId) {
-        String key = fileStorageService.store(provider.getOrgId(), file);
+        String key = fileStorageService.store(provider.getOrgId(), file, FileStorageService.providerFolder(provider) + "/Documents",
+                FileStorageService.label(docType) + " - " + file.getOriginalFilename());
         ProviderDocument d = documentRepository.findByProviderIdAndDocType(provider.getId(), docType).orElseGet(() -> {
             ProviderDocument n = new ProviderDocument();
             n.setOrgId(provider.getOrgId());
