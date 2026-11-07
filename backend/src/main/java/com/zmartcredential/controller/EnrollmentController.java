@@ -55,8 +55,20 @@ public class EnrollmentController {
                                                  @RequestParam(required = false) Long payerId,
                                                  @RequestParam(defaultValue = "0") int page,
                                                  @RequestParam(defaultValue = "50") int size,
-                                                 @RequestParam(required = false) String sort) {
-        return enrollmentService.list(q, status, providerId, payerId, page, size, sort);
+                                                 @RequestParam(required = false) String sort,
+                                                 @RequestParam(name = "f.provider", required = false) String fProvider,
+                                                 @RequestParam(name = "f.payer", required = false) String fPayer,
+                                                 @RequestParam(name = "f.submitted", required = false) String fSubmitted,
+                                                 @RequestParam(name = "f.approved", required = false) String fApproved,
+                                                 @RequestParam(name = "f.tat", required = false) String fTat,
+                                                 @RequestParam(name = "f.last", required = false) String fLast,
+                                                 @RequestParam(name = "f.next", required = false) String fNext,
+                                                 @RequestParam(name = "f.followups", required = false) String fFollowUps,
+                                                 @RequestParam(name = "f.notes", required = false) String fNotes,
+                                                 @RequestParam(name = "f.ack", required = false) String fAck) {
+        var columns = new com.zmartcredential.service.EnrollmentColumnFilters(fProvider, fPayer, fSubmitted, fApproved, fTat,
+                fLast, fNext, fFollowUps, fNotes, fAck);
+        return enrollmentService.list(q, status, providerId, payerId, page, size, sort, columns);
     }
 
     @Operation(summary = "Enrollment counts by status, approved/active totals and average TAT")

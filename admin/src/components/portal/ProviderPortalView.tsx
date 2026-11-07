@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DocStatusBadge, StatusPill } from "@/components/Pill";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState, Loading } from "@/components/AsyncState";
@@ -346,11 +346,23 @@ function MyDocuments({ provider }: { provider: ProviderDetail }) {
 export function MyEnrollmentsView() {
   const { user } = useAuth();
   const [counts, setCounts] = useState<{ active: number; total: number } | null>(null);
+  const [clearFilters, setClearFilters] = useState<(() => void) | null>(null);
+  const onFiltering = useCallback((clear: (() => void) | null) => setClearFilters(() => clear), []);
   return (
     <div>
-      <PageHeader title="My Enrollments" subtitle={counts ? counts.active + " active enrollment(s) · " + counts.total + " total" : undefined} />
+      <PageHeader
+        title="My Enrollments"
+        subtitle={counts ? counts.active + " active enrollment(s) · " + counts.total + " total" : undefined}
+        actions={
+          clearFilters && (
+            <button type="button" className="btn btn-secondary" onClick={clearFilters} data-clear-filters>
+              <Icon name="X" size={14} /> Clear filters and sorting
+            </button>
+          )
+        }
+      />
       {!user?.orgId && <NoOrganizationBanner />}
-      <MyEnrollmentsTable onLoaded={(list) => setCounts({ active: list.filter((e) => e.status === "approved").length, total: list.length })} />
+      <MyEnrollmentsTable onFiltering={onFiltering} onLoaded={(list) => setCounts({ active: list.filter((e) => e.status === "approved").length, total: list.length })} />
     </div>
   );
 }

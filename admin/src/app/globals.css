@@ -195,3 +195,7 @@ tr.no-hover td { background: transparent; }
 /* Admin → Payers: payer checklist rows */
 .payer-check:hover { background: var(--bg-soft-2); }
 .sticky-head th { position: sticky; top: 0; z-index: 2; }
+
+/* a filter row above the headings: both stay at the top while scrolling */
+.sticky-head tr.filter-row th { top: 0; z-index: 3; }
+.sticky-head tr.label-row th { top: 50px; }

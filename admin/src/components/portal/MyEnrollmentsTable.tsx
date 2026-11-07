@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { fmtDate, todayISO } from "@/lib/utils";
 import type { Enrollment } from "@/types/enrollments";
+import { applyColumnFilters, ColumnFilterRow, type ColumnFilters, type ColumnKey, type Sort } from "@/components/enrollments/EnrollmentColumnFilters";
 
 const PAGE_SIZE = 10;
 
@@ -21,13 +22,32 @@ const PAGE_SIZE = 10;
  * Provider portal → My Enrollments: the provider's own enrollments with the same columns as the admin Enrollments list
  * (no actions). Read-only: the notes, the call / email follow-ups and the acknowledgement can be viewed, not changed.
  */
-export function MyEnrollmentsTable({ onLoaded }: { onLoaded?: (list: Enrollment[]) => void }) {
+export function MyEnrollmentsTable({ onLoaded, onFiltering }: { onLoaded?: (list: Enrollment[]) => void; onFiltering?: (clear: (() => void) | null) => void }) {
   const q = useAsync<Enrollment[]>(async () => {
     const list = await api.get<Enrollment[]>("/me/enrollments/full");
     onLoaded?.(list);
     return list;
   }, []);
   const [page, setPage] = useState(0);
+  const [filters, setFilters] = useState<ColumnFilters>({});
+  const [sort, setSort] = useState<Sort>(null);
+  const changeFilter = (key: ColumnKey, v: string) => {
+    setFilters((f) => ({ ...f, [key]: v }));
+    setPage(0);
+  };
+  const anyFilter = Object.values(filters).some((v) => (v || "").trim()) || sort !== null;
+  // the page header shows "Clear filters and sorting" while a filter or sort is on (so the table doesn't move)
+  useEffect(() => {
+    onFiltering?.(
+      anyFilter
+        ? () => {
+            setFilters({});
+            setSort(null);
+            setPage(0);
+          }
+        : null,
+    );
+  }, [anyFilter, onFiltering]);
   const [touches, setTouches] = useState<{ enrollment: Enrollment; type: "call" | "email" } | null>(null);
 
   // the list fills the window down to the bottom: the rows scroll inside it, pagination stays below
@@ -53,7 +73,8 @@ export function MyEnrollmentsTable({ onLoaded }: { onLoaded?: (list: Enrollment[
   }, [fit]);
 
   if (q.error) return <ErrorState message={q.error} onRetry={q.reload} />;
-  const all = q.data || [];
+  const everything = q.data || [];
+  const all = applyColumnFilters(everything, filters, sort);
   const totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
   const current = Math.min(page, totalPages - 1);
   const rows = all.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
@@ -71,14 +92,15 @@ export function MyEnrollmentsTable({ onLoaded }: { onLoaded?: (list: Enrollment[
       >
         {!q.data ? (
           <Loading />
-        ) : all.length === 0 ? (
+        ) : everything.length === 0 ? (
           <EmptyState icon="ClipboardList" title="No enrollments yet" description="Your organization hasn't started any payer enrollments for you yet." />
         ) : (
           <>
             <div className="table-scroll flex-1 min-h-0" style={{ overflow: "auto" }}>
               <table className="sticky-head">
                 <thead>
-                  <tr>
+                  <ColumnFilterRow filters={filters} sort={sort} onFilter={changeFilter} onSort={(x) => { setSort(x); setPage(0); }} />
+                  <tr className="label-row">
                     <th>Provider</th>
                     <th>Payer</th>
                     <th>Status</th>
@@ -93,6 +115,13 @@ export function MyEnrollmentsTable({ onLoaded }: { onLoaded?: (list: Enrollment[
                   </tr>
                 </thead>
                 <tbody>
+                  {all.length === 0 && (
+                    <tr>
+                      <td colSpan={11} className="text-center text-sm text-ink-light py-10" data-no-match>
+                        No enrollments match these filters.
+                      </td>
+                    </tr>
+                  )}
                   {rows.map((e) => (
                     <tr key={e.id} data-my-enrollment={e.id}>
                       <td>

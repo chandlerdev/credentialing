@@ -1,7 +1,5 @@
 "use client";
 
-import { Select } from "@/components/Select";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessDenied } from "@/components/AlertBox";
 import { Avatar } from "@/components/Avatar";
@@ -11,6 +9,7 @@ import { ErrorState, Loading } from "@/components/AsyncState";
 import { Icon } from "@/components/Icon";
 import { NotesCell } from "@/components/NotesCell";
 import { AcknowledgementCell } from "./AcknowledgementCell";
+import { columnQuery, ColumnFilterRow, type ColumnFilters, type ColumnKey, type Sort } from "./EnrollmentColumnFilters";
 import { FollowUpLogModal } from "./FollowUpLogModal";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
@@ -18,7 +17,7 @@ import { StatusPill } from "@/components/Pill";
 import { api, errorMessage } from "@/lib/api";
 import { useAuth, useUser } from "@/stores/auth";
 import { useAsync, useDebounced } from "@/lib/hooks";
-import { fmtDate, cleanSearch, todayISO } from "@/lib/utils";
+import { fmtDate, todayISO } from "@/lib/utils";
 import { useToast } from "@/stores/toast";
 import { useShell, useTopic } from "@/stores/shell";
 import type { PageResponse } from "@/types";
@@ -33,9 +32,20 @@ export function EnrollmentsView() {
   const user = useUser();
   const toast = useToast();
   const { publish } = useShell();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // a filter box + ↑ / ↓ sort above every column (filtered, sorted and paged on the server)
+  const [filters, setFilters] = useState<ColumnFilters>({});
+  const [sort, setSort] = useState<Sort>(null);
   const [page, setPage] = useState(0);
+  const changeFilter = (key: ColumnKey, v: string) => {
+    setFilters((f) => ({ ...f, [key]: v }));
+    setPage(0);
+  };
+  const anyFilter = Object.values(filters).some((v) => (v || "").trim()) || sort !== null;
+  const clearFilters = () => {
+    setFilters({});
+    setSort(null);
+    setPage(0);
+  };
   const [editing, setEditing] = useState<Enrollment | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deleting, setDeleting] = useState<Enrollment | null>(null);
@@ -63,12 +73,12 @@ export function EnrollmentsView() {
     };
   }, [fit]);
   const [touches, setTouches] = useState<{ enrollment: Enrollment; type: "call" | "email" } | null>(null);
-  const q = useDebounced(search);
+  const query = useDebounced(JSON.stringify(columnQuery(filters, sort)));
   const allowed = can("list", "enrollment");
 
   const list = useAsync<PageResponse<Enrollment>>(
-    allowed ? () => api.get("/enrollments", { q, status: statusFilter, page, size: PAGE_SIZE, sort: "createdAt,desc" }) : null,
-    [allowed, q, statusFilter, page]
+    allowed ? () => api.get("/enrollments", { ...JSON.parse(query), page, size: PAGE_SIZE }) : null,
+    [allowed, query, page]
   );
   const summary = useAsync<EnrollmentSummary>(allowed ? () => api.get("/enrollments/summary") : null, [allowed]);
   const reloadAll = () => {
@@ -103,53 +113,26 @@ export function EnrollmentsView() {
         title="Enrollments"
         subtitle={s ? s.total + " total · " + s.approved + " approved · " + s.active + " active" : " "}
         actions={
-          can("create", "enrollment") && (
-            <button
-              onClick={() => {
-                setEditing(null);
-                setShowForm(true);
-              }}
-              className="btn btn-primary"
-            >
-              <Icon name="Plus" size={13} /> New Enrollment
-            </button>
-          )
+          <div className="flex items-center gap-2">
+            {anyFilter && (
+              <button type="button" className="btn btn-secondary" onClick={clearFilters} data-clear-filters>
+                <Icon name="X" size={14} /> Clear filters and sorting
+              </button>
+            )}
+            {can("create", "enrollment") && (
+              <button
+                onClick={() => {
+                  setEditing(null);
+                  setShowForm(true);
+                }}
+                className="btn btn-primary"
+              >
+                <Icon name="Plus" size={13} /> New Enrollment
+              </button>
+            )}
+          </div>
         }
       />
-
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 max-w-xs" style={{ minWidth: 200 }}>
-          <Icon name="Search" size={14} className="absolute" style={{ left: 10, top: 10, color: "var(--ink-faint)" }} />
-          <input
-            value={search}
-            onChange={(e) => {
-              setSearch(cleanSearch(e.target.value));
-              setPage(0);
-            }}
-            placeholder="Search provider or payer..."
-            className="input"
-            style={{ paddingLeft: 32 }}
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(0);
-          }}
-          className="input"
-          style={{ width: 180 }}
-        >
-          <option value="all">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="in_progress">In Progress</option>
-          <option value="submitted">Submitted</option>
-          <option value="approved">Approved</option>
-          <option value="needs_attention">Needs Attention</option>
-          <option value="on_hold">On Hold</option>
-          <option value="terminated">Terminated</option>
-        </Select>
-      </div>
 
       {list.error ? (
         <ErrorState message={list.error} onRetry={list.reload} />
@@ -165,14 +148,24 @@ export function EnrollmentsView() {
         >
           {list.loading && !list.data ? (
             <Loading />
-          ) : rows.length === 0 ? (
-            <EmptyState icon="ClipboardList" title="No enrollments match" />
+          ) : rows.length === 0 && !anyFilter ? (
+            <EmptyState icon="ClipboardList" title="No enrollments yet" />
           ) : (
             <>
               <div className="table-scroll flex-1 min-h-0" style={{ overflow: "auto" }}>
                 <table className="sticky-head">
                   <thead>
-                    <tr>
+                    <ColumnFilterRow
+                      filters={filters}
+                      sort={sort}
+                      onFilter={changeFilter}
+                      onSort={(x) => {
+                        setSort(x);
+                        setPage(0);
+                      }}
+                      extraCells={1}
+                    />
+                    <tr className="label-row">
                       <th>Provider</th>
                       <th>Payer</th>
                       <th>Status</th>
@@ -188,8 +181,15 @@ export function EnrollmentsView() {
                     </tr>
                   </thead>
                   <tbody style={list.loading ? { opacity: 0.6 } : undefined}>
+                    {rows.length === 0 && (
+                      <tr data-no-match>
+                        <td colSpan={12} className="text-center text-sm text-ink-light" style={{ padding: "40px 16px" }}>
+                          No enrollments match these filters.
+                        </td>
+                      </tr>
+                    )}
                     {rows.map((e) => (
-                      <tr key={e.id}>
+                      <tr key={e.id} data-enrollment={e.id}>
                         <td>
                           <div className="flex items-center gap-2" style={{ minWidth: 150 }}>
                             <Avatar name={e.providerName} size={26} />

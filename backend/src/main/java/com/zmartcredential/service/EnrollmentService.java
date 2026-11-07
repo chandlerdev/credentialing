@@ -99,6 +99,13 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public PageResponse<EnrollmentResponse> list(String q, String status, Long providerId, Long payerId,
                                                  int page, int size, String sort) {
+        return list(q, status, providerId, payerId, page, size, sort, null);
+    }
+
+    /** With the filter boxes above the columns; a column sort key ("tat,desc", "next,asc", …) sorts by that column. */
+    @Transactional(readOnly = true)
+    public PageResponse<EnrollmentResponse> list(String q, String status, Long providerId, Long payerId,
+                                                 int page, int size, String sort, EnrollmentColumnFilters columns) {
         permissionService.require("enrollment", "list");
         authContext.requireStaff();
         Long orgId = authContext.orgId();
@@ -115,6 +122,19 @@ public class EnrollmentService {
                 .toList();
 
         int safeSize = Math.min(Math.max(1, size), 500);
+        String[] sortParts = sort == null ? new String[0] : sort.split(",");
+        Comparator<EnrollmentResponse> columnSort = sortParts.length == 0 ? null
+                : EnrollmentColumnFilters.comparator(sortParts[0].trim(), sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1].trim()));
+        if ((columns != null && columns.active()) || columnSort != null) {
+            // the column filters / sorts work on what the list shows (follow-up counts, acknowledgement…), so build every row first
+            LocalDate today = LocalDate.now();
+            var rows = toResponses(filtered, ctx).stream().filter(r -> columns == null || columns.matches(r, today));
+            List<EnrollmentResponse> all = (columnSort == null ? rows : rows.sorted(columnSort)).toList();
+            int from = Math.min(Math.max(0, page) * safeSize, all.size());
+            int to = Math.min(from + safeSize, all.size());
+            int totalPages = (int) Math.ceil(all.size() / (double) safeSize);
+            return new PageResponse<>(all.subList(from, to), Math.max(0, page), safeSize, all.size(), totalPages);
+        }
         int from = Math.min(Math.max(0, page) * safeSize, filtered.size());
         int to = Math.min(from + safeSize, filtered.size());
         List<EnrollmentResponse> content = toResponses(filtered.subList(from, to), ctx);

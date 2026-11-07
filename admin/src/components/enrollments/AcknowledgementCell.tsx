@@ -13,21 +13,15 @@ const ACK_EXT = ["pdf", "doc", "docx", "jpg", "jpeg", "png"];
 
 /**
  * Acknowledgement column: the payer's acknowledgement / approval certificate of an approved enrollment.
- * Approved without a file → Upload; with a file → view (eye) and replace.
+ * Approved without a file → Upload; with a file → view (eye) and replace. A file stays viewable when the enrollment
+ * is no longer approved (it can only be replaced while approved); not approved and no file → "—".
  */
 export function AcknowledgementCell({ enrollment: e, canUpload, onUploaded }: { enrollment: Enrollment; canUpload: boolean; onUploaded: () => void }) {
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [viewing, setViewing] = useState(false);
-
-  if (e.status !== "approved") {
-    return (
-      <span className="text-xs text-ink-faint" title="The acknowledgement can be uploaded once the enrollment is approved">
-        —
-      </span>
-    );
-  }
+  const approved = e.status === "approved";
 
   const pick = async (file: File | null) => {
     if (input.current) input.current.value = "";
@@ -74,7 +68,7 @@ export function AcknowledgementCell({ enrollment: e, canUpload, onUploaded }: { 
         <button className="btn-ghost p-1" onClick={view} disabled={viewing} title={(word ? "Download " : "View ") + (e.acknowledgementFileName || "acknowledgement") + (word ? " (Word files can't be viewed in the browser)" : "")} aria-label={word ? "Download acknowledgement" : "View acknowledgement"}>
           {viewing ? <span className="loader" style={{ width: 11, height: 11 }} /> : <Icon name={word ? "Download" : "Eye"} size={14} style={{ color: "var(--accent)" }} />}
         </button>
-        {canUpload && (
+        {canUpload && approved && (
           <button className="btn-ghost p-1" onClick={() => input.current?.click()} disabled={uploading} title="Replace the acknowledgement" aria-label="Replace acknowledgement">
             {uploading ? <span className="loader" style={{ width: 11, height: 11 }} /> : <Icon name="RefreshCw" size={12} />}
           </button>
@@ -84,6 +78,13 @@ export function AcknowledgementCell({ enrollment: e, canUpload, onUploaded }: { 
     );
   }
 
+  if (!approved) {
+    return (
+      <span className="text-xs text-ink-faint" title="The acknowledgement can be uploaded once the enrollment is approved">
+        —
+      </span>
+    );
+  }
   if (!canUpload) return <span className="text-xs text-ink-faint">Not uploaded</span>;
   return (
     <div onClick={(ev) => ev.stopPropagation()}>
