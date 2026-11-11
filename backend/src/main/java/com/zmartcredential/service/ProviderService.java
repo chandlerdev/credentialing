@@ -268,8 +268,9 @@ public class ProviderService {
         permissionService.require("provider", "update");
         Provider p = support.loadForStaff(id);
         Long orgId = p.getOrgId();
-        String npi = req.npi().trim();
-        providerRepository.findByOrgIdAndNpi(orgId, npi).filter(o -> !o.getId().equals(p.getId())).ifPresent(o -> {
+        // NPI is optional; an entered one must not belong to another provider
+        String npi = blankToNull(req.npi());
+        if (npi != null) providerRepository.findByOrgIdAndNpi(orgId, npi).filter(o -> !o.getId().equals(p.getId())).ifPresent(o -> {
             throw new ConflictException("NPI " + npi + " is already used by " + fullName(o));
         });
         Hierarchy h = resolveHierarchy(orgId, req.clientId(), req.practiceId(), req.locationId());
@@ -653,31 +654,24 @@ public class ProviderService {
     }
 
     /**
-     * Adding a provider (manually, from CAQH, or from the Organization screen): every field of the provider form
-     * is required, the same as in Edit Provider.
+     * Adding a provider (manually, from CAQH, or from the Organization screen): only the first and last name are
+     * required here (the sign-in email and password are checked by the login flows); everything else is optional
+     * and checked only when it is filled in.
      */
     public static void requireComplete(ProviderCreateRequest req) {
         List<String> missing = new ArrayList<>();
         if (req.firstName() == null || req.firstName().isBlank()) missing.add("First Name");
         if (req.lastName() == null || req.lastName().isBlank()) missing.add("Last Name");
-        if (blankToNull(req.suffix()) == null) missing.add("Suffix");
-        if (blankToNull(req.npi()) == null) missing.add("NPI");
-        if (blankToNull(req.specialty()) == null) missing.add("Specialty");
-        if (blankToNull(req.email()) == null) missing.add("Email");
-        if (blankToNull(req.phone()) == null) missing.add("Phone");
-        else if (!com.zmartcredential.util.PhoneNumber.isValid(req.phone())) throw BadRequestException.onField("phone", com.zmartcredential.util.PhoneNumber.MESSAGE);
-        if (blankToNull(req.licenseNumber()) == null) missing.add("License #");
-        if (blankToNull(req.licenseState()) == null) missing.add("License State");
-        if (req.licenseExpires() == null) missing.add("License Expires");
-        else if (req.licenseExpires().isBefore(LocalDate.now())) throw new BadRequestException("License Expires can't be in the past");
-        if (blankToNull(req.status()) == null) missing.add("Status");
+        if (blankToNull(req.phone()) != null && !com.zmartcredential.util.PhoneNumber.isValid(req.phone())) {
+            throw BadRequestException.onField("phone", com.zmartcredential.util.PhoneNumber.MESSAGE);
+        }
+        if (req.licenseExpires() != null && req.licenseExpires().isBefore(LocalDate.now())) {
+            throw new BadRequestException("License Expires can't be in the past");
+        }
         // CAQH ID is optional; when given it must be 6-10 digits
         if (blankToNull(req.caqhId()) != null && !req.caqhId().trim().matches("[0-9]{6,10}")) {
             throw BadRequestException.onField("caqhId", "CAQH ID must be 6-10 digits");
         }
-        // CAQH username / password and PECOS are optional
-        if (req.practiceId() == null) missing.add("Practice");
-        if (req.locationId() == null) missing.add("Location");
         if (!missing.isEmpty()) throw new BadRequestException("Required: " + String.join(", ", missing));
     }
 }

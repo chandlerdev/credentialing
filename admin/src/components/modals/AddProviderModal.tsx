@@ -172,7 +172,7 @@ function CaqhImportModal({
   if (profile && completing) {
     const p = profile;
     return (
-      <Modal title="Complete Provider Details" subtitle="Imported from CAQH — check the details and fill in anything CAQH did not provide. Every field is required." onClose={onClose} showBack onBack={() => setCompleting(false)} maxWidth={880}>
+      <Modal title="Complete Provider Details" subtitle="Imported from CAQH — check the details and fill in anything CAQH did not provide. First name, last name, email and password are required." onClose={onClose} showBack onBack={() => setCompleting(false)} maxWidth={880}>
         {!org.data ? (
           <Loading compact />
         ) : (
@@ -328,12 +328,12 @@ function CaqhImportModal({
         <div className="px-3 py-2 rounded-lg text-xs" style={{ background: "var(--info-soft)", color: "#1e40af" }}>
           <Icon name="Info" size={12} /> Credentials are needed only for delegated arrangements. Without them, we&apos;ll request the provider authorize your organization in CAQH.
         </div>
-        <OrgAssignmentFields value={assignment} onChange={setAssignment} title="Assign imported provider to *" locationRequired />
+        <OrgAssignmentFields value={assignment} onChange={setAssignment} title="Assign imported provider to" />
         <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <button onClick={onBack} className="btn btn-secondary" disabled={importing}>Cancel</button>
           <button
             onClick={handleImport}
-            disabled={!caqhId || importing || !assignment.practiceId || !assignment.locationId}
+            disabled={!caqhId || importing}
             title={!assignment.practiceId ? "Pick a practice to continue" : !assignment.locationId ? "Pick a location to continue" : ""}
             className="btn btn-primary"
           >

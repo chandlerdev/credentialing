@@ -181,26 +181,19 @@ export function SecureLinkPortal({ token }: { token: string }) {
   };
 
   const firstName = info?.firstName || status?.firstName || "";
-  const requiredDocs = docs.filter((d) => d.critical);
-  const uploadedRequired = requiredDocs.filter((d) => uploaded[d.docType]).length;
   // Same requirements as adding a provider in the admin app (staff already gave the name, email, practice and location).
   const needsLogin = !!info && !info.profile.hasLogin;
   /** Every problem on the profile step, by field (shown under the fields when Continue is clicked). */
   const profileProblems = (p: Profile): Record<string, string> => {
     const e: Record<string, string> = {};
     const today = todayISO();
-    if (!NPI_RE.test(p.npi)) e.npi = p.npi ? "NPI must be 10 digits" : "Required";
+    // only the name and the sign-in password are required; the rest is checked when it is filled in
+    if (p.npi && !NPI_RE.test(p.npi)) e.npi = "NPI must be 10 digits";
     if (p.caqhId && !/^[0-9]{6,10}$/.test(p.caqhId)) e.caqhId = "CAQH ID must be 6–10 digits (or leave it empty)";
-    if (!p.suffix) e.suffix = "Required";
-    if (!p.specialty.trim()) e.specialty = "Required";
-    else if (p.specialty === OTHER && !p.specialtyOther.trim()) e.specialtyOther = "Required";
-    if (!PHONE_RE.test(p.phone)) e.phone = p.phone ? "Ph.No must be 10 digits" : "Required";
+    if (p.phone && !PHONE_RE.test(p.phone)) e.phone = "Ph.No must be 10 digits";
     if (!p.firstName.trim()) e.firstName = "Required";
     if (!p.lastName.trim()) e.lastName = "Required";
-    if (!p.licenseNumber.trim()) e.licenseNumber = "Required";
-    if (!p.licenseState) e.licenseState = "Required";
-    if (!p.licenseExpires) e.licenseExpires = "Required";
-    else if (p.licenseExpires < today) e.licenseExpires = "The license has expired — enter the current expiration date";
+    if (p.licenseExpires && p.licenseExpires < today) e.licenseExpires = "The license has expired — enter the current expiration date";
     if (p.deaExpires && p.deaExpires < today) e.deaExpires = "The DEA registration has expired — enter the current date or leave it empty";
     // CAQH username / password and PECOS are optional
     if (needsLogin) {
@@ -413,7 +406,7 @@ export function SecureLinkPortal({ token }: { token: string }) {
                   : "Your credentialing team already has every required document on file."
                 : docRequest
                   ? "Upload the documents you have — each one is optional. " + uploadedCount + " of " + docs.length + " uploaded."
-                  : "Upload each required document. " + uploadedRequired + " of " + requiredDocs.length + " required documents uploaded."}
+                  : "Upload the documents you have — you can also send them later. " + uploadedCount + " of " + docs.length + " uploaded."}
             </p>
             <div className="space-y-2">
               {docs.map((doc) => (
@@ -448,7 +441,7 @@ export function SecureLinkPortal({ token }: { token: string }) {
                 <button onClick={() => setStep("profile")} className="btn btn-secondary">
                   <Icon name="ArrowLeft" size={13} /> Back
                 </button>
-                <button onClick={() => setStep("review")} disabled={uploadedRequired < requiredDocs.length} className="btn btn-primary">
+                <button onClick={() => setStep("review")} className="btn btn-primary">
                   Review Submission <Icon name="ArrowRight" size={13} />
                 </button>
               </div>
@@ -573,12 +566,12 @@ function ProfileForm({
           <Field label="Last Name" required error={errors.lastName}>
             <input value={profile.lastName} onChange={(e) => set("lastName", e.target.value)} className="input" maxLength={80} />
           </Field>
-          <Field label="Suffix" required error={errors.suffix}>
+          <Field label="Suffix" error={errors.suffix}>
             <SuffixSelect value={profile.suffix} onChange={(v) => set("suffix", v)} publicToken={token} withEmpty />
           </Field>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label="NPI" required error={errors.npi}>
+          <Field label="NPI" error={errors.npi}>
             <input value={profile.npi} onChange={(e) => set("npi", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="10 digits" inputMode="numeric" />
           </Field>
           <SpecialtyField
@@ -588,11 +581,12 @@ function ProfileForm({
             error={errors.specialty}
             otherError={errors.specialtyOther}
             publicToken={token}
+            required={false}
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Fixed label="Email" value={fixed.email} />
-          <Field label="Ph.No" required error={errors.phone || (profile.phone && !PHONE_RE.test(profile.phone) ? "Ph.No must be 10 digits" : undefined)}>
+          <Field label="Ph.No" error={errors.phone || (profile.phone && !PHONE_RE.test(profile.phone) ? "Ph.No must be 10 digits" : undefined)}>
             <PhoneInput value={profile.phone} onChange={(v) => set("phone", v)} invalid={!!errors.phone} />
           </Field>
           <Field label="Date of Birth" error={errors.dateOfBirth}>
@@ -607,13 +601,13 @@ function ProfileForm({
       </FormSection>
       <FormSection icon="Award" title="License & IDs">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label="License Number" required error={errors.licenseNumber}>
+          <Field label="License Number" error={errors.licenseNumber}>
             <input value={profile.licenseNumber} onChange={(e) => set("licenseNumber", e.target.value)} className="input font-mono" maxLength={40} />
           </Field>
-          <Field label="License State" required error={errors.licenseState}>
+          <Field label="License State" error={errors.licenseState}>
             <StateSelect value={profile.licenseState} onChange={(v) => set("licenseState", v)} publicToken={token} ariaLabel="License State" invalid={!!errors.licenseState} />
           </Field>
-          <Field label="License Expiration" required error={errors.licenseExpires}>
+          <Field label="License Expiration" error={errors.licenseExpires}>
             <input type="date" min={todayISO()} value={profile.licenseExpires} onChange={(e) => set("licenseExpires", e.target.value)} className="input" />
           </Field>
         </div>
@@ -768,7 +762,7 @@ function DocUploadRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-ink">{doc.label}</span>
-            {doc.critical && <span className="text-[10px] font-semibold" style={{ color: "var(--danger)" }}>REQUIRED</span>}
+            {doc.critical && <span className="text-[10px] font-semibold" style={{ color: "var(--warn)" }}>RECOMMENDED</span>}
             {doc.status === "expired" && !uploaded && <Pill type="danger">Expired</Pill>}
           </div>
           {uploaded ? (

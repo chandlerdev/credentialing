@@ -413,24 +413,18 @@ public class ProviderInviteService {
         if ("documents".equals(inv.getPurpose())) throw new BadRequestException("This link is for uploading documents only");
         Provider p = providerRepository.findById(inv.getProviderId())
                 .orElseThrow(() -> new NotFoundException("This link is no longer valid"));
-        String npi = req.npi().trim();
-        providerRepository.findByOrgIdAndNpi(p.getOrgId(), npi)
+        // Only the sign-in password is required (below); the other details are optional and checked when filled in.
+        String npi = blankToNull(req.npi());
+        if (npi != null) providerRepository.findByOrgIdAndNpi(p.getOrgId(), npi)
                 .filter(other -> !Objects.equals(other.getId(), p.getId()))
                 .ifPresent(other -> {
                     throw new ConflictException("NPI " + npi + " is already registered with this organization");
                 });
-        // Same requirements as adding a provider in the admin app (name, email, practice and location were set by staff).
-        java.util.List<String> missing = new java.util.ArrayList<>();
-        if (blankToNull(req.suffix()) == null) missing.add("Suffix");
-        if (blankToNull(req.specialty()) == null) missing.add("Specialty");
-        if (blankToNull(req.phone()) == null) missing.add("Phone");
-        else if (!com.zmartcredential.util.PhoneNumber.isValid(req.phone())) throw BadRequestException.onField("phone", com.zmartcredential.util.PhoneNumber.MESSAGE);
-        if (blankToNull(req.licenseState()) == null) missing.add("License State");
-        if (req.licenseExpires() == null) missing.add("License Expiration");
-        else if (req.licenseExpires().isBefore(java.time.LocalDate.now())) throw new BadRequestException("License Expiration can't be in the past");
+        if (blankToNull(req.phone()) != null && !com.zmartcredential.util.PhoneNumber.isValid(req.phone())) {
+            throw BadRequestException.onField("phone", com.zmartcredential.util.PhoneNumber.MESSAGE);
+        }
+        if (req.licenseExpires() != null && req.licenseExpires().isBefore(java.time.LocalDate.now())) throw new BadRequestException("License Expiration can't be in the past");
         if (req.deaExpires() != null && req.deaExpires().isBefore(java.time.LocalDate.now())) throw new BadRequestException("DEA Expiration can't be in the past");
-        // CAQH username / password and PECOS are optional
-        if (!missing.isEmpty()) throw new BadRequestException("Required: " + String.join(", ", missing));
         p.setNpi(npi);
         if (blankToNull(req.firstName()) != null) p.setFirstName(req.firstName().trim());
         if (blankToNull(req.lastName()) != null) p.setLastName(req.lastName().trim());
@@ -443,7 +437,7 @@ public class ProviderInviteService {
         p.setSpecialty(blankToNull(req.specialty()));
         p.setPhone(blankToNull(req.phone()));
         p.setDateOfBirth(req.dateOfBirth());
-        p.setLicenseNumber(req.licenseNumber().trim());
+        p.setLicenseNumber(blankToNull(req.licenseNumber()));
         String state = blankToNull(req.licenseState());
         p.setLicenseState(state == null ? null : state.toUpperCase());
         p.setLicenseExpires(req.licenseExpires());

@@ -113,7 +113,7 @@ public final class ProviderDtos {
             @NotBlank(message = "First name is required") @Size(max = 80, message = "At most 80 characters") String firstName,
             @NotBlank(message = "Last name is required") @Size(max = 80, message = "At most 80 characters") String lastName,
             @Size(max = 10, message = "At most 10 characters") String suffix,
-            @NotBlank(message = "NPI is required") @Pattern(regexp = "^\\d{10}$", message = "10 digits required") String npi,
+            @Pattern(regexp = "^$|^\\d{10}$", message = "10 digits required") String npi,
             @Pattern(regexp = "^$|^\\d{1,10}$", message = "CAQH ID must contain digits only") String caqhId,
             @Size(max = 120) String specialty,
             @Email(message = "Enter a valid email address") @Size(max = 255) String email,

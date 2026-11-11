@@ -377,6 +377,7 @@ export function SpecialtyField({
   error,
   otherError,
   publicToken,
+  required = true,
 }: {
   choice: string;
   other: string;
@@ -385,16 +386,18 @@ export function SpecialtyField({
   otherError?: string;
   /** the secure-link page reads the public list */
   publicToken?: string | null;
+  /** false: Specialty (and Other Specialty) can be left empty */
+  required?: boolean;
 }) {
   const options = useMasterList("specialty", publicToken !== undefined ? { publicToken } : undefined);
   const list = [...withCurrent(options, choice && choice !== OTHER ? choice : null), { value: OTHER, label: "Other" }];
   return (
     <>
-      <Field label="Specialty *" error={error}>
+      <Field label={required ? "Specialty *" : "Specialty"} error={error}>
         <OptionSelect value={choice} options={list} onChange={(v) => onChange(v, v === OTHER ? other : "")} ariaLabel="Specialty" invalid={!!error} />
       </Field>
       {choice === OTHER && (
-        <Field label="Other Specialty *" error={otherError}>
+        <Field label={required ? "Other Specialty *" : "Other Specialty"} error={otherError}>
           <input value={other} onChange={(e) => onChange(OTHER, e.target.value)} className="input" maxLength={120} placeholder="Type the specialty" aria-label="Other Specialty" autoFocus />
         </Field>
       )}

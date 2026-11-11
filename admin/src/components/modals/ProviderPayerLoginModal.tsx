@@ -107,7 +107,7 @@ function LoginForm({
 
   const nameParts = providerName.split(",")[0].trim().split(/\s+/);
   const placeholder = (nameParts[0] || "first").toLowerCase() + "." + (nameParts.length > 1 ? nameParts[nameParts.length - 1] : "last").toLowerCase();
-  const canSave = !!username.trim() && (!!password || !!existing?.hasPassword) && !!payerProviderId.trim();
+  const canSave = !!username.trim() && (!!password || !!existing?.hasPassword);
 
   const toggleShow = async () => {
     // Reveal the stored password the first time "show" is pressed on an existing login.
@@ -130,8 +130,8 @@ function LoginForm({
     const e: Record<string, string> = {};
     if (!username.trim()) e.username = "Username is required";
     if (!password && !existing?.hasPassword) e.password = "Password is required";
-    if (!payerProviderId.trim()) e.payerProviderId = "Provider ID is required";
-    else if (!/^[A-Za-z0-9-]+$/.test(payerProviderId.trim())) e.payerProviderId = "Letters, digits and dashes only";
+    // the Provider ID is optional; when entered: letters, digits and dashes
+    if (payerProviderId.trim() && !/^[A-Za-z0-9-]+$/.test(payerProviderId.trim())) e.payerProviderId = "Letters, digits and dashes only";
     setErrors(e);
     if (Object.keys(e).length) return;
     setSaving(true);
@@ -195,7 +195,7 @@ function LoginForm({
             </button>
           </div>
         </Field>
-        <Field label="Provider ID (with payer) *" error={errors.payerProviderId} hint="The ID this payer assigned to the provider">
+        <Field label="Provider ID (with payer)" error={errors.payerProviderId} hint="The ID this payer assigned to the provider">
           <input value={payerProviderId} onChange={(e) => setPayerProviderId(e.target.value.replace(/[^A-Za-z0-9-]/g, ""))} className="input font-mono" placeholder="e.g. 1234567" maxLength={60} />
         </Field>
         <Field label="Notes (optional)" error={errors.notes}>

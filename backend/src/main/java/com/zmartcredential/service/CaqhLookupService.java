@@ -145,7 +145,7 @@ public class CaqhLookupService {
         if (d != null) {
             ProviderService.requireComplete(d);
             if (!d.caqhId().trim().equals(req.caqhId())) throw new BadRequestException("The CAQH ID cannot be changed after the lookup");
-            npi = d.npi().trim();
+            if (blankToNull(d.npi()) != null) npi = d.npi().trim();
             h = providerService.resolveHierarchy(orgId, d.clientId(), d.practiceId(), d.locationId());
         }
         if (providerRepository.existsByOrgIdAndNpi(orgId, npi)) {

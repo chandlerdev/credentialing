@@ -23,13 +23,13 @@ export const assignmentPayload = (a: OrgAssignment) => ({
 });
 
 /**
- * Prototype v2 "Assign to Organization *": client → practice (required) → location (optional).
+ * Prototype v2 "Assign to Organization": client → practice → location, all optional when adding a provider.
  * Picking a practice fills in its client.
  */
 export function OrgAssignmentFields({
   value,
   onChange,
-  title = "Assign to Organization *",
+  title = "Assign to Organization",
   error,
   locationRequired = false,
   locationError,
@@ -64,7 +64,7 @@ export function OrgAssignmentFields({
         </AlertBox>
       ) : (
         <div className="grid grid-cols-1 gap-2">
-          <Field label="Client *" error={clientError}>
+          <Field label="Client" error={clientError}>
             <Select
               value={value.clientId}
               onChange={(e) => onChange({ clientId: e.target.value, practiceId: "", locationId: "" })}
@@ -77,7 +77,7 @@ export function OrgAssignmentFields({
               ))}
             </Select>
           </Field>
-          <Field label="Practice *" error={error}>
+          <Field label="Practice" error={error}>
             <Select
               value={value.practiceId}
               onChange={(e) => {

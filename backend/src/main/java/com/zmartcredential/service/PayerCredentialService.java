@@ -64,10 +64,7 @@ public class PayerCredentialService {
         authContext.requireStaff();
         Long orgId = authContext.orgId();
         Payer payer = support.payer(payerId);
-        // Like a provider's own login: the portal login needs the Provider ID the payer assigned.
-        if (req.payerProviderId() == null || req.payerProviderId().isBlank()) {
-            throw new BadRequestException("Provider ID (with payer) is required");
-        }
+        // the Provider ID (with payer) is optional
         PayerCredential c = repository.findByOrgIdAndProviderIdIsNullAndPayerId(orgId, payerId).orElse(null);
         return save(c, orgId, null, payer, req);
     }
@@ -111,10 +108,7 @@ public class PayerCredentialService {
         if (authContext.hasRole(Role.AUDITOR)) throw new ForbiddenException("Auditors have read-only access");
         support.provider(providerId, orgId);
         Payer payer = support.payer(payerId);
-        // A provider's own login needs the ID the payer assigned to them (used when submitting).
-        if (req.payerProviderId() == null || req.payerProviderId().isBlank()) {
-            throw new BadRequestException("Provider ID (with payer) is required");
-        }
+        // the Provider ID (with payer) is optional
         PayerCredential c = repository.findByOrgIdAndProviderIdAndPayerId(orgId, providerId, payerId).orElse(null);
         return save(c, orgId, providerId, payer, req);
     }

@@ -56,11 +56,7 @@ export function SendLinkModal({
     if (!form.email.trim()) e.email = "Required";
     else if (!EMAIL_RE.test(form.email.trim())) e.email = "Valid email required";
     else if (emailTaken) e.email = emailTaken;
-    if (!assignment.clientId) e.clientId = "Client is required";
-    if (!assignment.practiceId) e.practiceId = "Pick a practice to continue";
-    if (!provider) {
-      if (!assignment.locationId) e.locationId = "Pick a location to continue";
-    }
+    // client / practice / location are optional (they can be set later on the provider)
     setErrors(e);
     if (Object.keys(e).length) return;
     setBusy(true);
@@ -119,7 +115,6 @@ export function SendLinkModal({
           }}
           clientError={errors.clientId}
           error={errors.practiceId}
-          locationRequired={!provider}
           locationError={errors.locationId}
         />
         <div className="px-3 py-3 rounded-lg" style={{ background: "var(--info-soft)" }}>
@@ -140,8 +135,7 @@ export function SendLinkModal({
           <button onClick={back} className="btn btn-secondary" disabled={busy}>Cancel</button>
           <button
             onClick={handleSend}
-            disabled={busy || !form.firstName || !form.lastName || !form.email || !assignment.practiceId}
-            title={!assignment.practiceId ? "Pick a practice to continue" : ""}
+            disabled={busy || !form.firstName || !form.lastName || !form.email}
             className="btn btn-primary"
           >
             {busy ? (

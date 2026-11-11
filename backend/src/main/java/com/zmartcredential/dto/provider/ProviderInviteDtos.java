@@ -2,7 +2,6 @@ package com.zmartcredential.dto.provider;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -29,9 +28,10 @@ public final class ProviderInviteDtos {
             @NotBlank(message = "Last name is required") @Size(max = 80, message = "At most 80 characters") String lastName,
             @NotBlank(message = "Email is required") @Email(message = "Enter a valid email address")
             @Size(max = 255) String email,
+            /* optional: client / practice / location can be set later */
             Long clientId,
-            @NotNull(message = "Pick a practice to continue") Long practiceId,
-            @NotNull(message = "Pick a location to continue") Long locationId,
+            Long practiceId,
+            Long locationId,
             /* optional */
             @Pattern(regexp = "^$|^\\d{6,10}$", message = "CAQH ID must be 6-10 digits") String caqhId) {
     }
@@ -76,14 +76,15 @@ public final class ProviderInviteDtos {
             /* the provider's name (optional: blank keeps the name the staff member entered) */
             @Size(max = 80, message = "At most 80 characters") String firstName,
             @Size(max = 80, message = "At most 80 characters") String lastName,
-            @NotBlank(message = "NPI is required") @Pattern(regexp = "^\\d{10}$", message = "NPI must be 10 digits")
+            /* everything below is optional except the sign-in password (while the provider has no login) */
+            @Pattern(regexp = "^$|^\\d{10}$", message = "NPI must be 10 digits")
             String npi,
             @Pattern(regexp = "^$|^\\d{6,10}$", message = "CAQH ID must be 6-10 digits") String caqhId,
             @Size(max = 10, message = "At most 10 characters") String suffix,
             @Size(max = 120, message = "At most 120 characters") String specialty,
             @Size(max = 30, message = "At most 30 characters") String phone,
             LocalDate dateOfBirth,
-            @NotBlank(message = "License number is required") @Size(max = 40, message = "At most 40 characters")
+            @Size(max = 40, message = "At most 40 characters")
             String licenseNumber,
             @Pattern(regexp = "^$|^[A-Za-z]{2}$", message = "Use a 2-letter state") String licenseState,
             LocalDate licenseExpires,

@@ -1,7 +1,6 @@
 package com.zmartcredential.dto.caqh;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -95,10 +94,9 @@ public final class CaqhLookupDtos {
             @NotBlank(message = "CAQH ID is required")
             @Pattern(regexp = "^\\d{6,10}$", message = "CAQH ID must be 6-10 digits")
             String caqhId,
+            /* optional: client / practice / location can be set later */
             Long clientId,
-            @NotNull(message = "Pick a practice for the imported provider")
             Long practiceId,
-            @NotNull(message = "Pick a location for the imported provider")
             Long locationId,
             @Size(max = 200, message = "At most 200 characters") String caqhPassword,
             /* optional: the provider's CAQH ProView username (shown under Credentials) */

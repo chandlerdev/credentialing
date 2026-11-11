@@ -82,9 +82,9 @@ export function PayerPortalLoginModal({
     if (!form.username.trim()) e.username = "Username is required";
     if (!hasPassword) e.password = "Password is required";
     if (form.tin && form.tin.length > 20) e.groupTin = "Max 20 characters";
-    if (!form.providerId.trim()) e.payerProviderId = "Provider ID is required";
-    else if (form.providerId.length > 60) e.payerProviderId = "Max 60 characters";
-    else if (!/^[A-Za-z0-9-]+$/.test(form.providerId.trim())) e.payerProviderId = "Letters, digits and dashes only";
+    // the Provider ID is optional
+    if (form.providerId.length > 60) e.payerProviderId = "Max 60 characters";
+    else if (form.providerId.trim() && !/^[A-Za-z0-9-]+$/.test(form.providerId.trim())) e.payerProviderId = "Letters, digits and dashes only";
     if (!assigned.length) e.providerIds = "Choose at least one provider who uses this login";
     setErrors(e);
     if (Object.keys(e).length) return;
@@ -147,7 +147,7 @@ export function PayerPortalLoginModal({
           </Field>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Provider ID (with payer) *" error={errors.payerProviderId}>
+          <Field label="Provider ID (with payer)" error={errors.payerProviderId}>
             <input value={form.providerId} onChange={(e) => setForm({ ...form, providerId: e.target.value.replace(/[^A-Za-z0-9-]/g, "") })} className="input font-mono" disabled={!canEdit} maxLength={60} />
           </Field>
           <Field label="Group TIN" error={errors.groupTin}>
@@ -226,7 +226,7 @@ export function PayerPortalLoginModal({
               Cancel
             </button>
             {canEdit && (
-              <button onClick={save} className="btn btn-primary" disabled={saving || !form.username.trim() || !hasPassword || !form.providerId.trim() || !assigned.length}>
+              <button onClick={save} className="btn btn-primary" disabled={saving || !form.username.trim() || !hasPassword || !assigned.length}>
                 {saving && <span className="loader" style={{ borderTopColor: "white" }} />} {existing ? "Update Credentials" : "Save Credentials"}
               </button>
             )}
