@@ -207,9 +207,6 @@ export function ProviderForm({
     setErrors((er) => ({ ...er, locationId: "", practiceId: "" }));
   };
 
-  // the provider's own Manage Profile marks its required details; staff need only the name, email and password
-  const star = (label: string) => (selfService ? label + " *" : label);
-
   const validate = () => {
     const e: Record<string, string> = {};
     const req = (k: string, v: string) => {
@@ -223,34 +220,20 @@ export function ProviderForm({
     }
     // Change Password is optional: checked only when something was typed
     if (changePassword && form.password && form.password.length < 8) e.password = "At least 8 characters";
-    // Staff adding / editing a provider: only the name, the email (the sign-in) and the password are required; the
-    // provider's own Manage Profile keeps its required details. Formats are checked whenever something is entered.
-    const strict = selfService;
+    // Adding / editing a provider and the provider's own Manage Profile: only the name, the email (the sign-in) and
+    // the password (when adding) are required. Formats are checked whenever something is entered.
     req("firstName", form.firstName);
     req("lastName", form.lastName);
-    if (strict) req("suffix", form.suffix);
-    if (!form.npi) {
-      if (strict) e.npi = "Required";
-    } else if (!NPI_RE.test(form.npi)) e.npi = "10 digits required";
+    if (form.npi && !NPI_RE.test(form.npi)) e.npi = "10 digits required";
     // CAQH ID is optional; when entered it must be 6-10 digits
     if (form.caqhId && !/^[0-9]{6,10}$/.test(form.caqhId)) e.caqhId = "6-10 digits";
-    if (strict) req("specialty", form.specialty);
-    if (strict && form.specialty === OTHER && !form.specialtyOther.trim()) e.specialtyOther = "Required";
     if (!form.email.trim()) e.email = "Required";
     else if (!EMAIL_RE.test(form.email.trim())) e.email = "Valid email required";
     else if (emailTaken) e.email = emailTaken;
-    if (!form.phone) {
-      if (strict) e.phone = "Required";
-    } else if (!PHONE_RE.test(form.phone)) e.phone = "Ph.No must be 10 digits";
-    if (strict) {
-      req("license", form.license);
-      req("licenseState", form.licenseState);
-      req("licenseExpires", form.licenseExpires);
-    }
+    if (form.phone && !PHONE_RE.test(form.phone)) e.phone = "Ph.No must be 10 digits";
     // expiration dates can't be in the past (an unchanged date of an existing provider is left alone)
     if (form.licenseExpires && form.licenseExpires < todayISO() && form.licenseExpires !== (initial.licenseExpires || "")) e.licenseExpires = "Choose today or a later date";
     if (form.deaExpires && form.deaExpires < todayISO() && form.deaExpires !== (initial.deaExpires || "")) e.deaExpires = "Choose today or a later date";
-    if (strict) req("status", form.status);
     Object.assign(e, extraProblems(extra));
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -320,12 +303,12 @@ export function ProviderForm({
           <Field label="Last Name *" error={err("lastName")}>
             <input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className="input" maxLength={80} />
           </Field>
-          <Field label={star("Suffix")} error={err("suffix")}>
+          <Field label="Suffix" error={err("suffix")}>
             <SuffixSelect value={form.suffix} onChange={(v) => set("suffix", v)} />
           </Field>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label={star("NPI")} error={err("npi")} hint={selfService ? LOCKED_HINT : undefined}>
+          <Field label="NPI" error={err("npi")} hint={selfService ? LOCKED_HINT : undefined}>
             <input value={form.npi} onChange={(e) => set("npi", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="10 digits" inputMode="numeric" disabled={selfService} />
           </Field>
           <SpecialtyField
@@ -337,14 +320,14 @@ export function ProviderForm({
             }}
             error={err("specialty")}
             otherError={err("specialtyOther")}
-            required={selfService}
+            required={false}
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="Email *" error={err("email") || emailTaken} hint={selfService ? "Your sign-in — can't be changed here" : undefined}>
             <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="input" disabled={selfService} />
           </Field>
-          <Field label={star("Ph.No")} error={err("phone")}>
+          <Field label="Ph.No" error={err("phone")}>
             <PhoneInput value={form.phone} onChange={(v) => set("phone", v)} invalid={!!err("phone")} />
           </Field>
           <Field label="Date of Birth" error={err("dateOfBirth")}>
@@ -359,13 +342,13 @@ export function ProviderForm({
       </FormSection>
       <FormSection icon="Award" title="License & IDs">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label={star("License Number")} error={err("license")}>
+          <Field label="License Number" error={err("license")}>
             <input value={form.license} onChange={(e) => set("license", e.target.value)} className="input font-mono" maxLength={40} />
           </Field>
-          <Field label={star("License State")} error={err("licenseState")}>
+          <Field label="License State" error={err("licenseState")}>
             <StateSelect value={form.licenseState} onChange={(v) => set("licenseState", v)} ariaLabel="License State" invalid={!!err("licenseState")} />
           </Field>
-          <Field label={star("License Expiration")} error={err("licenseExpires")}>
+          <Field label="License Expiration" error={err("licenseExpires")}>
             <input type="date" min={todayISO()} value={form.licenseExpires} onChange={(e) => set("licenseExpires", e.target.value)} className="input" />
           </Field>
         </div>
@@ -443,7 +426,7 @@ export function ProviderForm({
       <BillingSection f={extra} set={setX} errors={errors} />
       <FormSection icon="KeyRound" title="Status & Sign-in">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label={star("Status")} error={err("status")} hint={selfService ? LOCKED_HINT : undefined}>
+          <Field label="Status" error={err("status")} hint={selfService ? LOCKED_HINT : undefined}>
             <Select value={form.status} onChange={(e) => set("status", e.target.value)} className="input" disabled={selfService}>
               {PROVIDER_STATUS_OPTIONS.map((o) => (
                 <option key={o.id} value={o.id}>{o.label}</option>

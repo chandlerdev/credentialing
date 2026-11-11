@@ -455,21 +455,18 @@ public class ProviderService {
             if (!req.pecosAccessGranted()) p.setPecosUsername(null);
         }
         if (req.pecosUsername() != null && !Boolean.FALSE.equals(p.getPecosAccessGranted())) p.setPecosUsername(blankToNull(req.pecosUsername()));
-        if (blankToNull(req.specialty()) == null) throw BadRequestException.onField("specialty", "Specialty is required");
-        p.setSpecialty(req.specialty().trim());
-        if (blankToNull(req.phone()) == null) throw BadRequestException.onField("phone", "Ph.No is required");
-        if (!com.zmartcredential.util.PhoneNumber.isValid(req.phone())) throw BadRequestException.onField("phone", com.zmartcredential.util.PhoneNumber.MESSAGE);
-        p.setPhone(req.phone().trim());
-        if (blankToNull(req.licenseNumber()) == null) throw BadRequestException.onField("licenseNumber", "License Number is required");
-        p.setLicenseNumber(req.licenseNumber().trim());
-        if (blankToNull(req.licenseState()) == null) throw BadRequestException.onField("licenseState", "License State is required");
-        p.setLicenseState(upper(req.licenseState()));
-        if (req.licenseExpires() != null) {
-            if (!req.licenseExpires().equals(p.getLicenseExpires()) && req.licenseExpires().isBefore(LocalDate.now())) {
-                throw BadRequestException.onField("licenseExpires", "License Expiration can't be in the past");
-            }
-            p.setLicenseExpires(req.licenseExpires());
+        // Same rules as adding a provider: only the name is required; the rest is checked when it is filled in.
+        p.setSpecialty(blankToNull(req.specialty()));
+        if (blankToNull(req.phone()) != null && !com.zmartcredential.util.PhoneNumber.isValid(req.phone())) {
+            throw BadRequestException.onField("phone", com.zmartcredential.util.PhoneNumber.MESSAGE);
         }
+        p.setPhone(blankToNull(req.phone()));
+        p.setLicenseNumber(blankToNull(req.licenseNumber()));
+        p.setLicenseState(upper(blankToNull(req.licenseState())));
+        if (req.licenseExpires() != null && !req.licenseExpires().equals(p.getLicenseExpires()) && req.licenseExpires().isBefore(LocalDate.now())) {
+            throw BadRequestException.onField("licenseExpires", "License Expiration can't be in the past");
+        }
+        p.setLicenseExpires(req.licenseExpires());
         p.setDeaNumber(blankToNull(req.deaNumber()));
         if (req.deaExpires() != null && !req.deaExpires().equals(p.getDeaExpires()) && req.deaExpires().isBefore(LocalDate.now())) {
             throw BadRequestException.onField("deaExpires", "DEA Expiration can't be in the past");
