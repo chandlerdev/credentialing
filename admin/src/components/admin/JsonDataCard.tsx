@@ -125,7 +125,7 @@ export function JsonDataCard({ onImported }: { onImported: (res: DataImportResul
             <Icon name="Check" size={12} className="inline mr-1" /> Import complete
           </div>
           <div className="text-ink">
-            Created {result.created.clients} clients, {result.created.practices} practices, {result.created.locations} locations, {result.created.providers} providers,{" "}
+            Created {result.created.practices} practices, {result.created.locations} locations, {result.created.providers} providers,{" "}
             {result.created.enrollments} enrollments, {result.created.tasks} tasks.
           </div>
           {result.skipped.length > 0 && (
@@ -142,7 +142,7 @@ export function JsonDataCard({ onImported }: { onImported: (res: DataImportResul
       )}
       <div className="mt-3 p-2 rounded text-[10px] text-ink-light" style={{ background: "var(--bg-soft)" }}>
         <Icon name="Info" size={10} className="inline mr-1" />
-        Export includes: clients, practices, locations, providers (with document statuses), enrollments and tasks. User logins, passwords, payer credentials and uploaded files are
+        Export includes: practices, locations, providers (with document statuses), enrollments and tasks. User logins, passwords, payer credentials and uploaded files are
         never exported. Imported records are marked as test data, so &quot;Delete All Test Data&quot; removes them.
       </div>
 

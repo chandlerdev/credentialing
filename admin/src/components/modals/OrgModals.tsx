@@ -13,10 +13,8 @@ import { addressChars, addressRule, digitsOnly, emailRule, nameRule, npiRule, ph
 import {
   blankToNull,
   toLocationRequest,
-  type Client,
   type Location,
   type LocationRequest,
-  type Organization,
   type Practice,
   type PracticeRequest,
   type TreePractice,
@@ -58,102 +56,17 @@ function FormError({ message }: { message: string }) {
 const Busy = ({ on }: { on: boolean }) => (on ? <span className="loader" style={{ borderTopColor: "white" }} /> : null);
 
 // ============================================================
-// EDIT ORGANIZATION MODAL
-// ============================================================
-export function EditOrganizationModal({ org, onClose, onSaved }: { org: Organization; onClose: () => void; onSaved: () => void }) {
-  const [name, setName] = useState(org?.name || "");
-  const toast = useToast();
-  const { busy, errors, setErrors, formError, run } = useSubmit();
-  const save = () => {
-    const e = validate({ name: [name, nameRule("Organization name", 200)] });
-    setErrors(e);
-    if (Object.keys(e).length) return;
-    run(async () => {
-      // Full update so the other organization fields stay as they are.
-      await api.put("/organization", {
-        name: name.trim(),
-        orgType: org.orgType,
-        taxId: org.taxId || "",
-        website: org.website,
-        address: org.address,
-        city: org.city,
-        state: org.state || "",
-        zip: org.zip || "",
-        phone: org.phone,
-        email: org.email,
-      });
-      toast("Organization updated");
-      onSaved();
-      onClose();
-    });
-  };
-  return (
-    <Modal title="Edit Organization" onClose={onClose} maxWidth={460}>
-      <div className="space-y-3">
-        <Field label="Organization Name" required error={errors.name}>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="input" autoFocus maxLength={200} />
-        </Field>
-        <FormError message={formError} />
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <button onClick={onClose} className="btn btn-secondary" disabled={busy}>Cancel</button>
-          <button onClick={save} disabled={!name.trim() || busy} className="btn btn-primary"><Busy on={busy} /> Update</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// ============================================================
-// EDIT CLIENT MODAL
-// ============================================================
-export function EditClientModal({ client, onClose, onSaved }: { client: { id: number; name: string }; onClose: () => void; onSaved: () => void }) {
-  const [name, setName] = useState(client?.name || "");
-  const toast = useToast();
-  const { busy, errors, setErrors, formError, run } = useSubmit();
-  const save = () => {
-    const e = validate({ name: [name, nameRule("Client name", 200)] });
-    setErrors(e);
-    if (Object.keys(e).length) return;
-    run(async () => {
-      await api.put("/clients/" + client.id, { name: name.trim() });
-      toast("Client updated");
-      onSaved();
-      onClose();
-    });
-  };
-  return (
-    <Modal title="Edit Client" subtitle={client?.name || ""} onClose={onClose} maxWidth={460}>
-      <div className="space-y-3">
-        <Field label="Client Name" required error={errors.name}>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="input" autoFocus maxLength={200} />
-        </Field>
-        <div className="p-2 rounded text-[11px] text-ink-light" style={{ background: "var(--bg-soft)" }}>
-          <Icon name="Info" size={10} className="inline mr-1" />
-          A client is a billing entity (parent organization) that holds one or more practices.
-        </div>
-        <FormError message={formError} />
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <button onClick={onClose} className="btn btn-secondary" disabled={busy}>Cancel</button>
-          <button onClick={save} disabled={!name.trim() || busy} className="btn btn-primary">
-            {busy ? <Busy on /> : <Icon name="Save" size={13} />} Update
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// ============================================================
 // EDIT PRACTICE MODAL (name, Tax ID, address, phone, email)
 // ============================================================
 export function EditPracticeModal({
   practice,
-  parentClientName,
+  organizationName,
   onClose,
   onSaved,
 }: {
   practice: TreePractice | Practice;
-  parentClientName?: string | null;
+  /** the organization the practice belongs to (shown, not editable) */
+  organizationName?: string | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -182,7 +95,6 @@ export function EditPracticeModal({
         address: blankToNull(address),
         phone: blankToNull(phone),
         email: blankToNull(email),
-        clientId: practice.clientId,
       };
       await api.put("/practices/" + practice.id, body);
       toast("Practice updated");
@@ -194,9 +106,9 @@ export function EditPracticeModal({
   return (
     <Modal title="Edit Practice" subtitle={practice?.name || ""} onClose={onClose} maxWidth={460}>
       <div className="space-y-3">
-        {parentClientName && (
-          <div className="p-2 rounded text-xs" style={{ background: "var(--bg-soft)" }}>
-            <span className="text-ink-light">Parent client:</span> <span className="font-semibold">{parentClientName}</span>
+        {organizationName && (
+          <div className="p-2 rounded text-xs" style={{ background: "var(--bg-soft)" }} data-practice-org>
+            <span className="text-ink-light">Organization:</span> <span className="font-semibold">{organizationName}</span>
           </div>
         )}
         <Field label="Practice Name" required error={errors.name}>
@@ -378,45 +290,39 @@ export function LocationMapModal({ location, onClose }: { location: Location; on
 }
 
 // ============================================================
-// ADD CLIENT/PRACTICE/LOCATION (Add Organization)
-// Prototype fields: client = name; practice = name, Tax ID, parent client;
-// location = name, parent practice, legal name, NPI, address.
+// ADD PRACTICE / LOCATION
+// practice = name, Tax ID, contact (it belongs to the organization); location = name, parent practice, legal name,
+// NPI, address.
 // ============================================================
-type AddType = "client" | "practice" | "location";
+type AddType = "practice" | "location";
 
-export function AddOrganizationModal({
-  clients,
+export function AddPracticeLocationModal({
+  organizationName,
   practices,
   onClose,
   onSaved,
-  initialType = "client",
+  initialType = "practice",
   initialParentId,
 }: {
-  clients: Client[];
+  organizationName: string;
   practices: Practice[];
   onClose: () => void;
   onSaved: (type: AddType) => void;
   initialType?: AddType;
-  /** Pre-selected parent: the client of a new practice / the practice of a new location. */
+  /** Pre-selected parent practice of a new location. */
   initialParentId?: number;
 }) {
   const [type, setType] = useState<AddType>(initialType);
   const [form, setForm] = useState({
-    name: "", taxId: "", parentId: initialParentId ? String(initialParentId) : "",
+    name: "", taxId: "", parentId: initialParentId && initialType === "location" ? String(initialParentId) : "",
     legalName: "", npi: "", address: "", phone: "", email: "",
   });
   const toast = useToast();
   const { busy, errors, setErrors, formError, run } = useSubmit();
-  const label = type === "client" ? "Client name" : type === "practice" ? "Practice name" : "Location name";
-
-  // Each type keeps its own chosen parent (a client for a practice, a practice for a location), so switching
-  // Type and back does not lose the selection — and a client id is never reused as a practice id.
-  const [parentByType, setParentByType] = useState<Record<AddType, string>>({ client: "", practice: "", location: "" });
+  const label = type === "practice" ? "Practice name" : "Location name";
   const switchType = (t: AddType) => {
-    setParentByType((m) => ({ ...m, [type]: form.parentId }));
     setType(t);
     setErrors({});
-    setForm((f) => ({ ...f, parentId: t === type ? f.parentId : parentByType[t] }));
   };
 
   const save = () => {
@@ -426,7 +332,6 @@ export function AddOrganizationModal({
       rules.address = [form.address, addressRule(false)];
       rules.phone = [form.phone, phoneRule];
       rules.email = [form.email, emailRule];
-      rules.parentId = [form.parentId, (v) => (v ? undefined : "Select a parent client")];
     }
     if (type === "location") {
       rules.legalName = [form.legalName, nameRule("Legal name", 200, false)];
@@ -434,17 +339,11 @@ export function AddOrganizationModal({
       rules.address = [form.address, addressRule(false)];
     }
     const e = validate(rules);
-    // Duplicate client names are refused (case and extra spaces ignored); the server checks too.
-    const key = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
-    if (type === "client" && !e.name && clients.some((c) => key(c.name) === key(form.name))) e.name = "A client with this name already exists";
     setErrors(e);
     if (Object.keys(e).length) return;
     run(async () => {
-      if (type === "client") {
-        await api.post("/clients", { name: form.name.trim() });
-        toast("Client added");
-      } else if (type === "practice") {
-        await api.post("/clients/" + form.parentId + "/practices", {
+      if (type === "practice") {
+        await api.post("/practices", {
           name: form.name.trim(),
           taxId: form.taxId || "",
           address: blankToNull(form.address),
@@ -475,13 +374,12 @@ export function AddOrganizationModal({
   };
 
   return (
-    <Modal title="Add to Organization" subtitle="Add a new client, practice, or location" onClose={onClose} maxWidth={560}>
+    <Modal title="Add Practice / Location" subtitle={"Add a new practice or location to " + organizationName} onClose={onClose} maxWidth={560}>
       <div className="space-y-3">
         <div>
           <label className="label">Type</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
-              { id: "client" as const, label: "Client", icon: "Building" },
               { id: "practice" as const, label: "Practice", icon: "Briefcase" },
               { id: "location" as const, label: "Location", icon: "MapPin" },
             ].map((o) => (
@@ -492,7 +390,7 @@ export function AddOrganizationModal({
             ))}
           </div>
         </div>
-        <Field label={type === "client" ? "Client Name" : type === "practice" ? "Practice Name" : "Location Name"} required error={errors.name}>
+        <Field label={type === "practice" ? "Practice Name" : "Location Name"} required error={errors.name}>
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" maxLength={type === "location" ? 150 : 200} />
         </Field>
         {type === "practice" && (
@@ -500,11 +398,8 @@ export function AddOrganizationModal({
             <Field label="Tax ID" error={errors.taxId} hint="Letters and digits, 5-20 characters">
               <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: taxIdChars(e.target.value) })} className="input font-mono" placeholder="e.g. 12-3456789 or TX12AB345" />
             </Field>
-            <Field label="Parent Client" required error={errors.parentId || errors.clientId}>
-              <Select value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })} className="input">
-                <option value="">— Select client —</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
+            <Field label="Organization">
+              <input value={organizationName} className="input" disabled aria-label="Organization" data-practice-org />
             </Field>
             <PracticeContactFields
               address={form.address}
@@ -523,7 +418,6 @@ export function AddOrganizationModal({
                 {practices.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
-                    {p.clientName ? " (" + p.clientName + ")" : ""}
                   </option>
                 ))}
               </Select>

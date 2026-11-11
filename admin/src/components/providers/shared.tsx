@@ -5,7 +5,7 @@ import { cleanSearch } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
-import type { ClientItem, LocationItem, PracticeItem, ProviderStatus } from "@/types/providers";
+import type { LocationItem, PracticeItem, ProviderStatus } from "@/types/providers";
 
 // ---------- Constants ----------
 
@@ -110,26 +110,24 @@ export function StatusDropdown({ status, disabled, busy, onChange }: { status: s
   );
 }
 
-// ---------- Org structure (client → practice → location cascade) ----------
+// ---------- Org structure (practice → location cascade) ----------
 
 export interface OrgStructure {
-  clients: ClientItem[];
   practices: PracticeItem[];
   locations: LocationItem[];
 }
 
-/** orgId: a super admin working on one organization (its clients, practices and locations). */
+/** orgId: a super admin working on one organization (its practices and locations). */
 export function useOrgStructure(enabled = true, orgId?: number | null) {
   return useAsync<OrgStructure>(
     enabled
       ? async () => {
           const opts = orgId != null ? { orgId } : undefined;
-          const [clients, practices, locations] = await Promise.all([
-            api.get<ClientItem[]>("/clients", undefined, opts),
+          const [practices, locations] = await Promise.all([
             api.get<PracticeItem[]>("/practices", undefined, opts),
             api.get<LocationItem[]>("/locations", undefined, opts),
           ]);
-          return { clients, practices, locations };
+          return { practices, locations };
         }
       : null,
     [enabled, orgId]

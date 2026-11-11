@@ -24,8 +24,6 @@ export interface Location {
   id: number;
   practiceId: number | null;
   practiceName: string | null;
-  clientId: number | null;
-  clientName: string | null;
   name: string;
   legalName: string | null;
   npi: string | null;
@@ -52,7 +50,6 @@ export interface DeleteResult {
 
 export interface TreePractice {
   id: number;
-  clientId: number;
   name: string;
   taxId: string | null;
   address: string | null;
@@ -63,32 +60,16 @@ export interface TreePractice {
   locations: Location[];
 }
 
-export interface TreeClient {
-  id: number;
-  name: string;
-  practiceCount: number;
-  providerCount: number;
-  practices: TreePractice[];
-}
-
+/** The organization's practices, each with its locations (there is no client level). */
 export interface OrgTree {
   organization: Organization;
-  clients: TreeClient[];
+  practices: TreePractice[];
   unassignedLocations: Location[];
-  totals: { clients: number; practices: number; locations: number; providers: number; unassignedProviders: number };
-}
-
-export interface Client {
-  id: number;
-  name: string;
-  practiceCount: number;
-  providerCount: number;
+  totals: { practices: number; locations: number; providers: number; unassignedProviders: number };
 }
 
 export interface Practice {
   id: number;
-  clientId: number;
-  clientName: string | null;
   name: string;
   taxId: string | null;
   address: string | null;
@@ -104,7 +85,6 @@ export interface PracticeRequest {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
-  clientId?: number | null;
 }
 
 export interface LocationRequest {

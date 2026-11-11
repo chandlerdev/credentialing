@@ -8,12 +8,12 @@ import { api } from "@/lib/api";
 import { useAsync, useDebounced } from "@/lib/hooks";
 import { useFitRows } from "@/lib/useFitRows";
 import { cleanSearch } from "@/lib/utils";
-import type { Location, OrgTree, TreeClient, TreePractice } from "@/types/organization";
+import type { Location, OrgTree, TreePractice } from "@/types/organization";
 
 const ROW_H = 58;
 const plural = (n: number, word: string) => n + " " + word + (n === 1 ? "" : "s");
 
-/** One organization's clients → practices → locations, read-only, with search and paging (super admin). */
+/** One organization's practices → locations, read-only, with search and paging (super admin). */
 export function OrgStructurePanel({ orgId }: { orgId: number }) {
   const [search, setSearch] = useState("");
   const q = useDebounced(search.trim());
@@ -34,8 +34,8 @@ export function OrgStructurePanel({ orgId }: { orgId: number }) {
       return n;
     });
 
-  // top-level rows: clients, then locations without a practice (one group)
-  const groups: ({ kind: "client"; client: TreeClient } | { kind: "unassigned"; locations: Location[] })[] = (data?.clients || []).map((c) => ({ kind: "client" as const, client: c }));
+  // top-level rows: the practices, then locations without a practice (one group)
+  const groups: ({ kind: "practice"; practice: TreePractice } | { kind: "unassigned"; locations: Location[] })[] = (data?.practices || []).map((p) => ({ kind: "practice" as const, practice: p }));
   if (data && data.unassignedLocations.length) groups.push({ kind: "unassigned", locations: data.unassignedLocations });
   const totalPages = Math.max(1, Math.ceil(groups.length / size));
   const current = Math.min(page, totalPages - 1);
@@ -52,7 +52,7 @@ export function OrgStructurePanel({ orgId }: { orgId: number }) {
               setSearch(cleanSearch(e.target.value));
               setPage(0);
             }}
-            placeholder="Search client, practice, location, city..."
+            placeholder="Search practice, location, city..."
             className="input"
             style={{ paddingLeft: 32 }}
             aria-label="Search organization structure"
@@ -60,7 +60,6 @@ export function OrgStructurePanel({ orgId }: { orgId: number }) {
         </div>
         {data && (
           <div className="flex gap-4 text-xs text-ink-light">
-            <span><strong className="text-ink">{data.totals.clients}</strong> clients</span>
             <span><strong className="text-ink">{data.totals.practices}</strong> practices</span>
             <span><strong className="text-ink">{data.totals.locations}</strong> locations</span>
             <span><strong className="text-ink">{data.totals.providers}</strong> providers</span>
@@ -70,12 +69,12 @@ export function OrgStructurePanel({ orgId }: { orgId: number }) {
       <div className="card overflow-hidden" ref={listRef}>
         <AsyncBoundary loading={tree.loading && !tree.data} error={tree.error} onRetry={tree.reload}>
           {pageGroups.length === 0 ? (
-            <div className="text-center text-sm text-ink-light py-8">{searching ? "Nothing matches “" + q + "”" : "This admin has no clients yet"}</div>
+            <div className="text-center text-sm text-ink-light py-8">{searching ? "Nothing matches “" + q + "”" : "This organization has no practices yet"}</div>
           ) : (
             <div className="divide-y divide-line">
               {pageGroups.map((g) =>
-                g.kind === "client" ? (
-                  <ClientNode key={"c" + g.client.id} client={g.client} isOpen={isOpen} toggle={toggle} />
+                g.kind === "practice" ? (
+                  <PracticeNode key={"p" + g.practice.id} practice={g.practice} isOpen={isOpen} toggle={toggle} />
                 ) : (
                   <div key="unassigned">
                     <Row depth={0} icon="MapPin" title="Locations without a practice" subtitle={plural(g.locations.length, "location")} open={isOpen("u")} onToggle={() => toggle("u")} />
@@ -92,27 +91,12 @@ export function OrgStructurePanel({ orgId }: { orgId: number }) {
   );
 }
 
-function ClientNode({ client, isOpen, toggle }: { client: TreeClient; isOpen: (k: string) => boolean; toggle: (k: string) => void }) {
-  const key = "c" + client.id;
-  return (
-    <div>
-      <Row depth={0} icon="Building" title={client.name} subtitle={plural(client.practiceCount, "practice") + " · " + plural(client.providerCount, "provider")} open={isOpen(key)} onToggle={() => toggle(key)} />
-      {isOpen(key) &&
-        (client.practices.length === 0 ? (
-          <div className="text-xs text-ink-faint py-2" style={{ paddingLeft: 52 }}>No practices</div>
-        ) : (
-          client.practices.map((p) => <PracticeNode key={p.id} practice={p} isOpen={isOpen} toggle={toggle} />)
-        ))}
-    </div>
-  );
-}
-
 function PracticeNode({ practice, isOpen, toggle }: { practice: TreePractice; isOpen: (k: string) => boolean; toggle: (k: string) => void }) {
   const key = "p" + practice.id;
   return (
     <div>
       <Row
-        depth={1}
+        depth={0}
         icon="Briefcase"
         accent
         title={practice.name}
@@ -122,9 +106,9 @@ function PracticeNode({ practice, isOpen, toggle }: { practice: TreePractice; is
       />
       {isOpen(key) &&
         (practice.locations.length === 0 ? (
-          <div className="text-xs text-ink-faint py-2" style={{ paddingLeft: 84 }}>No locations</div>
+          <div className="text-xs text-ink-faint py-2" style={{ paddingLeft: 52 }}>No locations</div>
         ) : (
-          practice.locations.map((l) => <LocationNode key={l.id} location={l} depth={2} />)
+          practice.locations.map((l) => <LocationNode key={l.id} location={l} depth={1} />)
         ))}
     </div>
   );

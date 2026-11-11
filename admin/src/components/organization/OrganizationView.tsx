@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { cleanSearch } from "@/lib/utils";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AccessDenied } from "@/components/AlertBox";
@@ -13,18 +13,17 @@ import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { StatusPill } from "@/components/Pill";
 import { api, errorMessage } from "@/lib/api";
-import { isOrgAdmin, useAuth, useUser } from "@/stores/auth";
+import { useAuth, useUser } from "@/stores/auth";
 import { useAsync, useDebounced } from "@/lib/hooks";
 import { useToast } from "@/stores/toast";
 import { useShell } from "@/stores/shell";
 import { ROLE_LABEL } from "@/lib/constants";
 import type { PageResponse } from "@/types";
-import { AddOrganizationModal, EditClientModal, EditLocationModal, EditOrganizationModal, EditPracticeModal } from "@/components/modals/OrgModals";
+import { AddPracticeLocationModal, EditLocationModal, EditPracticeModal } from "@/components/modals/OrgModals";
 import { AddProviderModal } from "@/components/modals/AddProviderModal";
-import { providerStatusPillKey, type Client, type DeleteResult, type Location, type LocationProviderRow, type OrgTree, type Practice, type TreeClient, type TreePractice } from "@/types/organization";
+import { providerStatusPillKey, type DeleteResult, type Location, type LocationProviderRow, type OrgTree, type Practice, type TreePractice } from "@/types/organization";
 
 type PendingDelete =
-  | { kind: "client"; id: number; name: string; providers: number }
   | { kind: "practice"; id: number; name: string; providers: number }
   | { kind: "location"; id: number; name: string; providers: number };
 
@@ -45,15 +44,12 @@ export function OrganizationView() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const [showAdd, setShowAdd] = useState(false);
-  const [editOrg, setEditOrg] = useState(false);
-  const [editClient, setEditClient] = useState<TreeClient | null>(null);
-  const [editPractice, setEditPractice] = useState<{ practice: TreePractice | Practice; clientName: string | null } | null>(null);
+  const [editPractice, setEditPractice] = useState<TreePractice | Practice | null>(null);
   const [editLocation, setEditLocation] = useState<Location | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [providerPage, setProviderPage] = useState(0);
-  // Prototype v2: a client or practice can be selected as well (details on the right).
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  // A practice can be selected as well (details on the right).
   const [selectedPracticeId, setSelectedPracticeId] = useState<number | null>(null);
   const [addPreset, setAddPreset] = useState<{ type: "practice" | "location"; parentId: number } | null>(null);
   const [addingProvider, setAddingProvider] = useState(false);
@@ -64,7 +60,6 @@ export function OrganizationView() {
   const canDelete = can("delete", "location");
 
   const tree = useAsync<OrgTree>(canRead ? () => api.get<OrgTree>("/org-tree", { q }) : null, [q, canRead]);
-  const clients = useAsync<Client[]>(canRead && can("list", "location") ? () => api.get<Client[]>("/clients") : null, [canRead]);
   const practices = useAsync<Practice[]>(canRead && can("list", "location") ? () => api.get<Practice[]>("/practices") : null, [canRead]);
   const location = useAsync<Location>(selectedLocationId && canRead ? () => api.get<Location>("/locations/" + selectedLocationId) : null, [selectedLocationId, canRead]);
   const locationProviders = useAsync<PageResponse<LocationProviderRow>>(
@@ -72,13 +67,10 @@ export function OrganizationView() {
     [selectedLocationId, providerPage]
   );
 
-  // Expand every client on first load (the prototype expanded its seed clients), and everything while searching.
+  // Every practice (and the locations without a practice) can be expanded; everything is open while searching.
   const allNodeIds = useMemo(() => {
     const all = new Set<string>();
-    tree.data?.clients.forEach((c) => {
-      all.add("c" + c.id);
-      c.practices.forEach((p) => all.add("p" + p.id));
-    });
+    tree.data?.practices.forEach((p) => all.add("p" + p.id));
     if (tree.data?.unassignedLocations.length) all.add("unassigned");
     return all;
   }, [tree.data]);
@@ -97,7 +89,6 @@ export function OrganizationView() {
     setSeenLocation(loc);
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (loc.clientId) next.add("c" + loc.clientId);
       if (loc.practiceId) next.add("p" + loc.practiceId);
       else next.add("unassigned");
       return next;
@@ -118,27 +109,17 @@ export function OrganizationView() {
     if (id == null) sp.delete("location");
     else sp.set("location", String(id));
     setProviderPage(0);
-    if (id != null) {
-      setSelectedClientId(null);
-      setSelectedPracticeId(null);
-    }
+    if (id != null) setSelectedPracticeId(null);
     router.replace(pathname + (sp.toString() ? "?" + sp.toString() : ""), { scroll: false });
-  };
-  const selectClient = (id: number) => {
-    setSelectedClientId(id);
-    setSelectedPracticeId(null);
-    if (selectedLocationId) selectLocation(null);
   };
   const selectPractice = (id: number) => {
     setSelectedPracticeId(id);
-    setSelectedClientId(null);
     if (selectedLocationId) selectLocation(null);
   };
 
 
   const reloadAll = () => {
     tree.reload();
-    clients.reload();
     practices.reload();
     if (selectedLocationId) {
       location.reload();
@@ -150,9 +131,9 @@ export function OrganizationView() {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      const path = pendingDelete.kind === "client" ? "/clients/" : pendingDelete.kind === "practice" ? "/practices/" : "/locations/";
+      const path = pendingDelete.kind === "practice" ? "/practices/" : "/locations/";
       await api.delete<DeleteResult>(path + pendingDelete.id);
-      toast(pendingDelete.kind === "client" ? "Client deleted" : pendingDelete.kind === "practice" ? "Practice deleted" : "Location deleted");
+      toast(pendingDelete.kind === "practice" ? "Practice deleted" : "Location deleted");
       if (pendingDelete.kind === "location" && pendingDelete.id === selectedLocationId) selectLocation(null);
       setPendingDelete(null);
       publish("providers");
@@ -176,17 +157,12 @@ export function OrganizationView() {
     (!!selectedLocationId && !selectedLocation && !location.error) ||
     (!!selectedLocation && locationProviders.loading && !locationProviders.data && !locationProviders.error);
   const selectedPractice: TreePractice | Practice | null = selectedLocation?.practiceId
-    ? data?.clients.flatMap((c) => c.practices).find((p) => p.id === selectedLocation.practiceId) || practices.data?.find((p) => p.id === selectedLocation.practiceId) || null
+    ? data?.practices.find((p) => p.id === selectedLocation.practiceId) || practices.data?.find((p) => p.id === selectedLocation.practiceId) || null
     : null;
-  const explicitPractice = !selectedLocationId && selectedPracticeId ? data?.clients.flatMap((c) => c.practices).find((p) => p.id === selectedPracticeId) || null : null;
-  const explicitClient = !selectedLocationId && selectedClientId ? data?.clients.find((c) => c.id === selectedClientId) || null : null;
-  const explicitPracticeClient = explicitPractice ? data?.clients.find((c) => c.id === explicitPractice.clientId) || null : null;
+  const explicitPractice = !selectedLocationId && selectedPracticeId ? data?.practices.find((p) => p.id === selectedPracticeId) || null : null;
+  const orgName = data?.organization.name || "Organization";
 
   const deleteMessage = (d: PendingDelete) => {
-    if (d.kind === "client")
-      return d.providers > 0
-        ? "Delete client \"" + d.name + "\"? " + d.providers + " provider(s) are linked and will be unassigned."
-        : "Delete client \"" + d.name + "\"? This will also delete all its practices.";
     if (d.kind === "practice")
       return d.providers > 0 ? "Delete practice \"" + d.name + "\"? " + d.providers + " provider(s) are linked and will be unassigned from this practice." : "Delete practice \"" + d.name + "\"?";
     return d.providers > 0 ? "Delete location \"" + d.name + "\"? " + d.providers + " provider(s) are at this location and will be unassigned." : "Delete location \"" + d.name + "\"?";
@@ -242,21 +218,15 @@ export function OrganizationView() {
       )}
       <PageHeader
         title={data ? data.organization.name + "'s Organization" : "Organization"}
-        subtitle="Manage your clients, practices, locations, and providers"
+        subtitle="Manage your practices, locations, and providers"
         actions={
-          <Fragment>
-            {isOrgAdmin(user) && data && (
-              <button onClick={() => setEditOrg(true)} className="btn btn-secondary"><Icon name="Pencil" size={13} /> Edit Organization</button>
-            )}
-            {canCreate && (
-              <button onClick={() => setShowAdd(true)} className="btn btn-primary"><Icon name="Plus" size={13} /> Add Client / Practice / Location</button>
-            )}
-          </Fragment>
+          canCreate && (
+            <button onClick={() => setShowAdd(true)} className="btn btn-primary"><Icon name="Plus" size={13} /> Add Practice / Location</button>
+          )
         }
       />
 
       <div className="flex items-center gap-4 mb-4 text-sm text-ink-light flex-wrap">
-        <span className="flex items-center gap-1.5"><Icon name="Building" size={13} /> {totals?.clients ?? "—"} clients</span>
         <span className="flex items-center gap-1.5"><Icon name="Briefcase" size={13} /> {totals?.practices ?? "—"} practices</span>
         <span className="flex items-center gap-1.5"><Icon name="MapPin" size={13} /> {totals?.locations ?? "—"} locations</span>
         <span className="flex items-center gap-1.5"><Icon name="Users" size={13} /> {totals?.providers ?? "—"} providers</span>
@@ -283,64 +253,41 @@ export function OrganizationView() {
               <ErrorState message={tree.error} onRetry={tree.reload} />
             ) : tree.loading && !data ? (
               <div style={{ minHeight: 400 }} />
-            ) : data && data.clients.length === 0 && data.unassignedLocations.length === 0 ? (
+            ) : data && data.practices.length === 0 && data.unassignedLocations.length === 0 ? (
               <EmptyState
-                icon={q ? "SearchX" : "Building"}
-                title={q ? "No matches" : "No clients yet"}
-                description={q ? "No client, practice or location matches \"" + q + "\"." : "Add your first client, then its practices and locations."}
+                icon={q ? "SearchX" : "Briefcase"}
+                title={q ? "No matches" : "No practices yet"}
+                description={q ? "No practice or location matches \"" + q + "\"." : "Add your first practice, then its locations."}
               />
             ) : (
               data && (
                 <>
-                  {data.clients.map((client) => {
-                    const cExp = expanded.has("c" + client.id);
+                  {data.practices.map((practice) => {
+                    const pExp = expanded.has("p" + practice.id);
                     return (
-                      <div key={client.id} className="mb-1">
+                      <div key={practice.id} className="mb-1" data-tree-practice={practice.id}>
                         <button
                           onClick={() => {
-                            toggle("c" + client.id);
-                            selectClient(client.id);
+                            toggle("p" + practice.id);
+                            selectPractice(practice.id);
                           }}
-                          className={"w-full flex items-center gap-2 px-2 py-2 rounded text-left " + (explicitClient?.id === client.id ? "bg-accent-soft" : "hover:bg-soft")}
+                          className={"w-full flex items-center gap-2 px-2 py-2 rounded text-left " + (explicitPractice?.id === practice.id ? "bg-accent-soft" : "hover:bg-soft")}
+                          aria-expanded={pExp}
                         >
-                          <Icon name={cExp ? "ChevronDown" : "ChevronRight"} size={14} className="text-ink-faint" />
-                          <Icon name="Building" size={14} className="text-ink-light" />
+                          <Icon name={pExp ? "ChevronDown" : "ChevronRight"} size={14} className="text-ink-faint" />
+                          <Icon name="Briefcase" size={13} style={{ color: "#10b981" }} />
                           <div className="flex-1">
-                            <div className={"text-sm font-medium " + (explicitClient?.id === client.id ? "text-accent" : "text-ink")}>{client.name}</div>
-                            <div className="text-[10px] text-ink-light">{client.practiceCount} practices</div>
+                            <div className={"text-sm font-medium " + (explicitPractice?.id === practice.id ? "text-accent" : "text-ink")}>{practice.name}</div>
+                            <div className="text-[10px] text-ink-light">Tax ID: {practice.taxId || "—"}</div>
+                            <div className="text-[10px] text-ink-light">
+                              {practice.locationCount} locations · {practice.providerCount} providers
+                            </div>
                           </div>
-                          {canUpdate && iconBtn("Edit client", "Pencil", () => setEditClient(client))}
-                          {canDelete && iconBtn("Delete client", "Trash2", () => setPendingDelete({ kind: "client", id: client.id, name: client.name, providers: client.providerCount }))}
+                          {canUpdate && iconBtn("Edit practice", "Pencil", () => setEditPractice(practice))}
+                          {canDelete && iconBtn("Delete practice", "Trash2", () => setPendingDelete({ kind: "practice", id: practice.id, name: practice.name, providers: practice.providerCount }))}
                         </button>
-                        {cExp &&
-                          client.practices.map((practice) => {
-                            const pExp = expanded.has("p" + practice.id);
-                            return (
-                              <div key={practice.id} className="ml-4">
-                                <button
-                                  onClick={() => {
-                                    toggle("p" + practice.id);
-                                    selectPractice(practice.id);
-                                  }}
-                                  className={"w-full flex items-center gap-2 px-2 py-2 rounded text-left " + (explicitPractice?.id === practice.id ? "bg-accent-soft" : "hover:bg-soft")}
-                                >
-                                  <Icon name={pExp ? "ChevronDown" : "ChevronRight"} size={14} className="text-ink-faint" />
-                                  <Icon name="Briefcase" size={13} style={{ color: "#10b981" }} />
-                                  <div className="flex-1">
-                                    <div className={"text-sm font-medium " + (explicitPractice?.id === practice.id ? "text-accent" : "text-ink")}>{practice.name}</div>
-                                    <div className="text-[10px] text-ink-light">Tax ID: {practice.taxId || "—"}</div>
-                                    <div className="text-[10px] text-ink-light">
-                                      {practice.locationCount} locations · {practice.providerCount} providers
-                                    </div>
-                                  </div>
-                                  {canUpdate && iconBtn("Edit practice", "Pencil", () => setEditPractice({ practice, clientName: client.name }))}
-                                  {canDelete && iconBtn("Delete practice", "Trash2", () => setPendingDelete({ kind: "practice", id: practice.id, name: practice.name, providers: practice.providerCount }))}
-                                </button>
-                                {pExp && practice.locations.map(renderLocation)}
-                                {pExp && practice.locations.length === 0 && <div className="ml-10 py-1 text-[11px] text-ink-faint">No locations</div>}
-                              </div>
-                            );
-                          })}
+                        {pExp && practice.locations.map(renderLocation)}
+                        {pExp && practice.locations.length === 0 && <div className="ml-10 py-1 text-[11px] text-ink-faint">No locations</div>}
                       </div>
                     );
                   })}
@@ -367,20 +314,12 @@ export function OrganizationView() {
         <div className="lg:col-span-3 card">
           {!selectedLocationId ? (
             <SelectionDetail
-              client={explicitClient}
+              orgName={orgName}
               practice={explicitPractice}
-              practiceClient={explicitPracticeClient}
               canCreate={canCreate}
               canUpdate={canUpdate}
-              onSelectClient={selectClient}
-              onSelectPractice={(id) => {
-                setExpanded((prev) => new Set(prev).add("p" + id));
-                selectPractice(id);
-              }}
               onSelectLocation={selectLocation}
-              onEditClient={setEditClient}
-              onEditPractice={(practice, clientName) => setEditPractice({ practice, clientName })}
-              onAddPractice={(clientId) => setAddPreset({ type: "practice", parentId: clientId })}
+              onEditPractice={setEditPractice}
               onAddLocation={(practiceId) => setAddPreset({ type: "location", parentId: practiceId })}
             />
           ) : location.error ? (
@@ -394,32 +333,14 @@ export function OrganizationView() {
               {/* Breadcrumb */}
               <div className="px-5 pt-4 pb-3 border-b border-line">
                 <div className="flex items-center gap-1 text-xs text-ink-light mb-2 flex-wrap">
-                  {/* Breadcrumb links open the client / practice panel */}
-                  {selectedLocation.clientId ? (
-                    <button
-                      onClick={() => {
-                        const id = selectedLocation.clientId!;
-                        setExpanded((prev) => new Set(prev).add("c" + id));
-                        selectClient(id);
-                      }}
-                      className="hover:text-accent hover:underline"
-                      title="Open client"
-                    >
-                      {selectedLocation.clientName || "Client"}
-                    </button>
-                  ) : (
-                    <span>No client</span>
-                  )}
+                  {/* Organization › practice (opens the practice panel) › location */}
+                  <span>{orgName}</span>
                   <Icon name="ChevronRight" size={11} className="text-ink-faint" />
                   {selectedLocation.practiceId ? (
                     <button
                       onClick={() => {
                         const id = selectedLocation.practiceId!;
-                        setExpanded((prev) => {
-                          const next = new Set(prev).add("p" + id);
-                          if (selectedLocation.clientId) next.add("c" + selectedLocation.clientId);
-                          return next;
-                        });
+                        setExpanded((prev) => new Set(prev).add("p" + id));
                         selectPractice(id);
                       }}
                       className="hover:text-accent hover:underline"
@@ -435,7 +356,7 @@ export function OrganizationView() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Icon name="Building" size={16} className="text-ink-light" />
-                  <h2 className="font-display text-xl font-semibold">{selectedLocation.clientName || selectedLocation.name}</h2>
+                  <h2 className="font-display text-xl font-semibold">{selectedLocation.name}</h2>
                 </div>
               </div>
 
@@ -445,7 +366,7 @@ export function OrganizationView() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">Practice</div>
                     {canUpdate && selectedPractice && (
-                      <button onClick={() => setEditPractice({ practice: selectedPractice, clientName: selectedLocation.clientName })} className="text-ink-faint hover:text-accent" title="Edit practice">
+                      <button onClick={() => setEditPractice(selectedPractice)} className="text-ink-faint hover:text-accent" title="Edit practice">
                         <Icon name="Pencil" size={13} />
                       </button>
                     )}
@@ -566,16 +487,16 @@ export function OrganizationView() {
       </div>
 
       {showAdd && (
-        <AddOrganizationModal
-          clients={clients.data || data?.clients || []}
+        <AddPracticeLocationModal
+          organizationName={orgName}
           practices={practices.data || []}
           onClose={() => setShowAdd(false)}
           onSaved={reloadAll}
         />
       )}
       {addPreset && (
-        <AddOrganizationModal
-          clients={clients.data || data?.clients || []}
+        <AddPracticeLocationModal
+          organizationName={orgName}
           practices={practices.data || []}
           initialType={addPreset.type}
           initialParentId={addPreset.parentId}
@@ -586,10 +507,9 @@ export function OrganizationView() {
       {addingProvider && selectedLocation && (
         <AddProviderModal
           placement={{
-            clientId: selectedLocation.clientId,
             practiceId: selectedLocation.practiceId,
             locationId: selectedLocation.id,
-            label: [selectedLocation.clientName, selectedLocation.practiceName, selectedLocation.name].filter(Boolean).join(" › "),
+            label: [selectedLocation.practiceName, selectedLocation.name].filter(Boolean).join(" › "),
           }}
           onClose={() => setAddingProvider(false)}
           onCreated={() => {
@@ -599,9 +519,7 @@ export function OrganizationView() {
           }}
         />
       )}
-      {editOrg && data &&<EditOrganizationModal org={data.organization} onClose={() => setEditOrg(false)} onSaved={reloadAll} />}
-      {editClient && <EditClientModal client={editClient} onClose={() => setEditClient(null)} onSaved={reloadAll} />}
-      {editPractice && <EditPracticeModal practice={editPractice.practice} parentClientName={editPractice.clientName} onClose={() => setEditPractice(null)} onSaved={reloadAll} />}
+      {editPractice && <EditPracticeModal practice={editPractice} organizationName={orgName} onClose={() => setEditPractice(null)} onSaved={reloadAll} />}
       {editLocation && <EditLocationModal location={editLocation} onClose={() => setEditLocation(null)} onSaved={reloadAll} />}
       {pendingDelete && (
         <ConfirmDialog
@@ -616,32 +534,22 @@ export function OrganizationView() {
   );
 }
 
-/** Prototype v2 right panel when a client or practice (not a location) is selected. */
+/** Right panel when a practice (not a location) is selected. */
 function SelectionDetail({
-  client,
+  orgName,
   practice,
-  practiceClient,
   canCreate,
   canUpdate,
-  onSelectClient,
-  onSelectPractice,
   onSelectLocation,
-  onEditClient,
   onEditPractice,
-  onAddPractice,
   onAddLocation,
 }: {
-  client: TreeClient | null;
+  orgName: string;
   practice: TreePractice | null;
-  practiceClient: TreeClient | null;
   canCreate: boolean;
   canUpdate: boolean;
-  onSelectClient: (id: number) => void;
-  onSelectPractice: (id: number) => void;
   onSelectLocation: (id: number) => void;
-  onEditClient: (c: TreeClient) => void;
-  onEditPractice: (p: TreePractice, clientName: string | null) => void;
-  onAddPractice: (clientId: number) => void;
+  onEditPractice: (p: TreePractice) => void;
   onAddLocation: (practiceId: number) => void;
 }) {
   const smallBtn = { fontSize: 11, padding: "4px 8px" };
@@ -649,15 +557,9 @@ function SelectionDetail({
   if (practice) {
     return (
       <div className="p-5">
-        {/* Breadcrumb: client link back to the client panel */}
+        {/* Breadcrumb: organization › practice */}
         <div className="flex items-center gap-1 text-xs text-ink-light mb-3 flex-wrap">
-          {practiceClient ? (
-            <button onClick={() => onSelectClient(practiceClient.id)} className="hover:text-accent hover:underline" title="Open client">
-              {practiceClient.name}
-            </button>
-          ) : (
-            <span>No client</span>
-          )}
+          <span>{orgName}</span>
           <Icon name="ChevronRight" size={11} className="text-ink-faint" />
           <span className="text-ink font-medium">{practice.name}</span>
         </div>
@@ -669,9 +571,7 @@ function SelectionDetail({
             <div className="text-[10px] text-ink-light uppercase font-semibold tracking-wider">Practice</div>
             <h3 className="font-display font-bold text-xl text-ink">{practice.name}</h3>
             <div className="text-xs text-ink-light mt-1">
-              {practiceClient && (
-                <button className="text-accent hover:underline" onClick={() => onSelectClient(practiceClient.id)}>{practiceClient.name}</button>
-              )}
+              {orgName}
               {practice.taxId && (
                 <>
                   {" "}· Tax ID: <span className="font-mono">{practice.taxId}</span>
@@ -680,7 +580,7 @@ function SelectionDetail({
             </div>
           </div>
           {canUpdate && (
-            <button onClick={() => onEditPractice(practice, practiceClient?.name || null)} className="btn btn-secondary"><Icon name="Pencil" size={12} /> Edit</button>
+            <button onClick={() => onEditPractice(practice)} className="btn btn-secondary"><Icon name="Pencil" size={12} /> Edit</button>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -724,61 +624,11 @@ function SelectionDetail({
     );
   }
 
-  if (client) {
-    const locationTotal = client.practices.reduce((s, p) => s + p.locationCount, 0);
-    return (
-      <div className="p-5">
-        <div className="flex items-start gap-3 mb-4 pb-4 border-b border-line">
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
-            <Icon name="Building" size={22} className="text-accent" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] text-ink-light uppercase font-semibold tracking-wider">Client</div>
-            <h3 className="font-display font-bold text-xl text-ink">{client.name}</h3>
-            <div className="text-xs text-ink-light mt-1">
-              {client.practices.length} practices · {locationTotal} locations
-            </div>
-          </div>
-          {canUpdate && (
-            <button onClick={() => onEditClient(client)} className="btn btn-secondary"><Icon name="Pencil" size={12} /> Edit</button>
-          )}
-        </div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs font-semibold text-ink">Practices</div>
-          {canCreate && (
-            <button onClick={() => onAddPractice(client.id)} className="btn btn-primary" style={smallBtn}><Icon name="Plus" size={11} /> Add Practice</button>
-          )}
-        </div>
-        {client.practices.length === 0 ? (
-          <div className="p-6 text-center text-xs text-ink-faint">
-            <Icon name="Briefcase" size={20} className="mx-auto mb-2 text-ink-faint" />
-            No practices yet. Use &quot;+ Add Practice&quot; to create one.
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {client.practices.map((pr) => (
-              <button key={pr.id} onClick={() => onSelectPractice(pr.id)} className="w-full flex items-center gap-2 p-2.5 rounded border border-line hover:border-accent text-left">
-                <Icon name="Briefcase" size={14} style={{ color: "#10b981" }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium">{pr.name}</div>
-                  <div className="text-[10px] text-ink-light">
-                    {pr.taxId ? "Tax ID: " + pr.taxId : "No Tax ID"} · {pr.locationCount} locations
-                  </div>
-                </div>
-                <Icon name="ChevronRight" size={14} className="text-ink-faint" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="p-10 text-center">
       <Icon name="MousePointerClick" size={32} className="mx-auto text-ink-faint mb-3" />
       <div className="font-display font-bold text-ink text-xl">Nothing selected</div>
-      <div className="text-sm text-ink-light mt-2">Click a client, practice, or location on the left to view its details.</div>
+      <div className="text-sm text-ink-light mt-2">Click a practice or location on the left to view its details.</div>
     </div>
   );
 }

@@ -42,6 +42,9 @@ public final class TestDataDtos {
 
     public record DataBundleData(
             String orgName,
+            /* the organization's practices */
+            @Size(max = 500, message = "At most 500 practices") List<@Valid BundlePractice> practices,
+            /* older files: practices grouped under clients (read as plain practices; no clients are created) */
             @Size(max = 200, message = "At most 200 clients") List<@Valid BundleClient> clients,
             @Size(max = 1000, message = "At most 1000 locations") List<@Valid BundleLocation> locations,
             @NotNull(message = "File is missing data.providers")

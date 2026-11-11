@@ -1,7 +1,5 @@
 package com.zmartcredential.controller;
 
-import com.zmartcredential.dto.organization.OrgStructureDtos.ClientRequest;
-import com.zmartcredential.dto.organization.OrgStructureDtos.ClientResponse;
 import com.zmartcredential.dto.organization.OrgStructureDtos.DeleteResult;
 import com.zmartcredential.dto.organization.OrgStructureDtos.InviteCodeResponse;
 import com.zmartcredential.dto.organization.OrgStructureDtos.OrgTreeResponse;
@@ -36,7 +34,7 @@ public class OrgStructureController {
 
     private final OrgStructureService service;
 
-    @Operation(summary = "Organization tree: clients > practices > locations with provider counts")
+    @Operation(summary = "Organization tree: practices > locations with provider counts")
     @GetMapping("/org-tree")
     public OrgTreeResponse tree(@RequestParam(required = false) String q) {
         return service.tree(q);
@@ -66,42 +64,17 @@ public class OrgStructureController {
         return service.regenerateInviteCode();
     }
 
-    @Operation(summary = "List clients")
-    @GetMapping("/clients")
-    public List<ClientResponse> clients() {
-        return service.listClients();
-    }
-
-    @Operation(summary = "Create client")
-    @PostMapping("/clients")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ClientResponse createClient(@Valid @RequestBody ClientRequest req) {
-        return service.createClient(req);
-    }
-
-    @Operation(summary = "Rename client")
-    @PutMapping("/clients/{id}")
-    public ClientResponse updateClient(@PathVariable Long id, @Valid @RequestBody ClientRequest req) {
-        return service.updateClient(id, req);
-    }
-
-    @Operation(summary = "Delete client (its practices are deleted, providers unassigned)")
-    @DeleteMapping("/clients/{id}")
-    public DeleteResult deleteClient(@PathVariable Long id) {
-        return service.deleteClient(id);
-    }
-
-    @Operation(summary = "List practices (optionally of one client)")
+    @Operation(summary = "List the organization's practices")
     @GetMapping("/practices")
-    public List<PracticeResponse> practices(@RequestParam(required = false) Long clientId) {
-        return service.listPractices(clientId);
+    public List<PracticeResponse> practices() {
+        return service.listPractices();
     }
 
-    @Operation(summary = "Create practice under a client")
-    @PostMapping("/clients/{clientId}/practices")
+    @Operation(summary = "Create a practice in the organization")
+    @PostMapping("/practices")
     @ResponseStatus(HttpStatus.CREATED)
-    public PracticeResponse createPractice(@PathVariable Long clientId, @Valid @RequestBody PracticeRequest req) {
-        return service.createPractice(clientId, req);
+    public PracticeResponse createPractice(@Valid @RequestBody PracticeRequest req) {
+        return service.createPractice(req);
     }
 
     @Operation(summary = "Update practice")

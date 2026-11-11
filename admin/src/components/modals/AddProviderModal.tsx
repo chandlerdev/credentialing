@@ -24,7 +24,7 @@ type Step = "choose" | "caqh" | "link" | "manual";
 /**
  * Prototype AddProviderModal (L1492) — three ways to add a provider.
  * `onCreated(id)` navigates to the new provider; `onCreated()` just refreshes the list.
- * `placement` (Organization screen): every path puts the provider under that client / practice / location.
+ * `placement` (Organization screen): every path puts the provider under that practice / location.
  */
 export function AddProviderModal({ onClose, onCreated, placement }: { onClose: () => void; onCreated: (id?: number) => void; placement?: ProviderPlacement }) {
   const [step, setStep] = useState<Step>("choose");
@@ -193,7 +193,6 @@ function CaqhImportModal({
               caqhUsername: username.trim(),
               caqhPassword: password,
               status: "active",
-              clientId: assignment.clientId ? Number(assignment.clientId) : null,
               practiceId: assignment.practiceId ? Number(assignment.practiceId) : null,
               locationId: assignment.locationId ? Number(assignment.locationId) : null,
             }}
@@ -207,7 +206,6 @@ function CaqhImportModal({
             onSubmit={async ({ password, ...body }) => {
               const res = await api.post<CaqhImportResponse>("/caqh/import", {
                 caqhId: caqhId.trim(),
-                clientId: body.clientId,
                 practiceId: body.practiceId,
                 locationId: body.locationId,
                 caqhUsername: body.caqhUsername,
@@ -367,10 +365,9 @@ export function PlacementNote({ placement }: { placement: ProviderPlacement }) {
 
 /** Where a provider added from the Organization screen goes (shown read-only at the top of the form). */
 export interface ProviderPlacement {
-  clientId: number | null;
   practiceId: number | null;
   locationId: number | null;
-  /** e.g. "Client › Practice › Location" */
+  /** e.g. "Practice › Location" */
   label: string;
 }
 
@@ -401,7 +398,7 @@ export function ManualAddModal({
       ) : (
         <ProviderForm
           org={org.data}
-          initial={placement ? { clientId: placement.clientId, practiceId: placement.practiceId, locationId: placement.locationId } : {}}
+          initial={placement ? { practiceId: placement.practiceId, locationId: placement.locationId } : {}}
           lockPlacement={!!placement}
           top={placement ? <PlacementNote placement={placement} /> : undefined}
           withLogin

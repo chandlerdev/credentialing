@@ -264,7 +264,6 @@ export function LocationFormModal({ location, practices, onSaved, onClose }: { l
             <option value="">— No practice (unlinked) —</option>
             {practices.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.clientName ? p.clientName + " → " : ""}
                 {p.name}
               </option>
             ))}

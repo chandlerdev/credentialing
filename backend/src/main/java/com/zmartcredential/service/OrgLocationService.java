@@ -3,12 +3,10 @@ package com.zmartcredential.service;
 import com.zmartcredential.dto.organization.LocationRequest;
 import com.zmartcredential.dto.organization.LocationResponse;
 import com.zmartcredential.dto.organization.OrgStructureDtos.DeleteResult;
-import com.zmartcredential.entity.Client;
 import com.zmartcredential.entity.Location;
 import com.zmartcredential.entity.Practice;
 import com.zmartcredential.exception.BadRequestException;
 import com.zmartcredential.exception.NotFoundException;
-import com.zmartcredential.repository.ClientRepository;
 import com.zmartcredential.repository.LocationRepository;
 import com.zmartcredential.repository.PracticeRepository;
 import com.zmartcredential.repository.ProviderRepository;
@@ -32,7 +30,6 @@ public class OrgLocationService {
 
     private final LocationRepository locationRepository;
     private final PracticeRepository practiceRepository;
-    private final ClientRepository clientRepository;
     private final ProviderRepository providerRepository;
     private final AuthContext authContext;
     private final PermissionService permissionService;
@@ -117,18 +114,15 @@ public class OrgLocationService {
         l.setActive(req.active() == null || req.active());
     }
 
-    /** Maps locations to DTOs with practice/client names and computed provider counts. */
+    /** Maps locations to DTOs with practice names and computed provider counts. */
     public List<LocationResponse> toResponses(Long orgId, List<Location> rows) {
         Map<Long, Long> counts = countMap(providerRepository.orgCountByLocation(orgId));
         Map<Long, Practice> practices = practiceRepository.findByOrgId(orgId).stream()
                 .collect(Collectors.toMap(Practice::getId, Function.identity()));
-        Map<Long, Client> clients = clientRepository.findByOrgId(orgId).stream()
-                .collect(Collectors.toMap(Client::getId, Function.identity()));
         return rows.stream().map(l -> {
             Practice p = l.getPracticeId() == null ? null : practices.get(l.getPracticeId());
-            Client c = p == null ? null : clients.get(p.getClientId());
             return new LocationResponse(l.getId(), l.getPracticeId(), p == null ? null : p.getName(),
-                    c == null ? null : c.getId(), c == null ? null : c.getName(), l.getName(), l.getLegalName(),
+                    l.getName(), l.getLegalName(),
                     l.getNpi(), l.getLocationType(), l.getAddress(), l.getCity(), l.getState(), l.getZip(),
                     l.getPhone(), l.getLat(), l.getLng(), Boolean.TRUE.equals(l.getActive()),
                     Boolean.TRUE.equals(l.getTestData()), counts.getOrDefault(l.getId(), 0L), l.getCreatedAt(),

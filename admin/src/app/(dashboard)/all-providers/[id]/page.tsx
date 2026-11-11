@@ -21,7 +21,6 @@ function Route() {
   // back to the same admin + organization selection
   const back = new URLSearchParams();
   if (search.get("admin")) back.set("admin", search.get("admin") as string);
-  if (search.get("client")) back.set("client", search.get("client") as string);
   if (!Number.isInteger(id) || id <= 0) return <ErrorState message="Invalid provider." />;
   return (
     <ProviderReadView

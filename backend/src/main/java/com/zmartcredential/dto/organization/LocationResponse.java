@@ -7,8 +7,6 @@ public record LocationResponse(
         Long id,
         Long practiceId,
         String practiceName,
-        Long clientId,
-        String clientName,
         String name,
         String legalName,
         String npi,

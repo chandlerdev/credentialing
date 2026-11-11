@@ -1,9 +1,6 @@
 package com.zmartcredential.service;
 
 import com.zmartcredential.dto.organization.LocationResponse;
-import com.zmartcredential.dto.organization.OrgStructureDtos.ClientNode;
-import com.zmartcredential.dto.organization.OrgStructureDtos.ClientRequest;
-import com.zmartcredential.dto.organization.OrgStructureDtos.ClientResponse;
 import com.zmartcredential.dto.organization.OrgStructureDtos.DeleteResult;
 import com.zmartcredential.dto.organization.OrgStructureDtos.InviteCodeResponse;
 import com.zmartcredential.dto.organization.OrgStructureDtos.OrgTreeResponse;
@@ -13,14 +10,12 @@ import com.zmartcredential.dto.organization.OrgStructureDtos.PracticeResponse;
 import com.zmartcredential.dto.organization.OrgStructureDtos.Totals;
 import com.zmartcredential.dto.organization.OrganizationResponse;
 import com.zmartcredential.dto.organization.OrganizationUpdateRequest;
-import com.zmartcredential.entity.Client;
 import com.zmartcredential.entity.Location;
 import com.zmartcredential.entity.Organization;
 import com.zmartcredential.entity.Practice;
 import com.zmartcredential.exception.BadRequestException;
 import com.zmartcredential.exception.ConflictException;
 import com.zmartcredential.exception.NotFoundException;
-import com.zmartcredential.repository.ClientRepository;
 import com.zmartcredential.repository.LocationRepository;
 import com.zmartcredential.repository.OrganizationRepository;
 import com.zmartcredential.repository.PracticeRepository;
@@ -41,7 +36,7 @@ import java.util.stream.Collectors;
 import static com.zmartcredential.service.OrgLocationService.blankToNull;
 import static com.zmartcredential.service.OrgLocationService.countMap;
 
-/** Organization view: tenant org, clients, practices and the full org tree. Permission entity: location. */
+/** Organization view: tenant org, its practices and locations (the org tree). Permission entity: location. */
 @Service
 @RequiredArgsConstructor
 public class OrgStructureService {
@@ -50,7 +45,6 @@ public class OrgStructureService {
     private final OrgNames orgNames;
     private final SoftDeleteCascade softDeleteCascade;
     private final EmailRegistry emailRegistry;
-    private final ClientRepository clientRepository;
     private final PracticeRepository practiceRepository;
     private final LocationRepository locationRepository;
     private final ProviderRepository providerRepository;
@@ -69,45 +63,33 @@ public class OrgStructureService {
         Organization org = loadOrg(orgId);
         String needle = q == null || q.isBlank() ? null : q.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
 
-        List<Client> clients = clientRepository.findByOrgIdOrderByNameAsc(orgId);
         List<Practice> practices = practiceRepository.findByOrgIdOrderByNameAsc(orgId);
         List<LocationResponse> locations = locationService.toResponses(orgId,
                 locationRepository.findByOrgIdOrderByNameAsc(orgId));
         Map<Long, Long> practiceCounts = countMap(providerRepository.orgCountByPractice(orgId));
-        Map<Long, Long> clientCounts = countMap(providerRepository.orgCountByClient(orgId));
 
         Map<Long, List<LocationResponse>> locByPractice = locations.stream().filter(l -> l.practiceId() != null)
                 .collect(Collectors.groupingBy(LocationResponse::practiceId));
-        Map<Long, List<Practice>> pracByClient = practices.stream()
-                .collect(Collectors.groupingBy(Practice::getClientId));
 
-        List<ClientNode> clientNodes = new ArrayList<>();
-        for (Client c : clients) {
-            boolean clientMatch = needle == null || has(c.getName(), needle);
-            List<PracticeNode> pNodes = new ArrayList<>();
-            List<Practice> clientPractices = pracByClient.getOrDefault(c.getId(), List.of());
-            for (Practice p : clientPractices) {
-                List<LocationResponse> pLocs = locByPractice.getOrDefault(p.getId(), List.of());
-                boolean practiceMatch = clientMatch || has(p.getName(), needle) || has(p.getTaxId(), needle);
-                List<LocationResponse> shown = practiceMatch ? pLocs
-                        : pLocs.stream().filter(l -> locMatch(l, needle)).toList();
-                if (!practiceMatch && shown.isEmpty()) continue;
-                pNodes.add(new PracticeNode(p.getId(), p.getClientId(), p.getName(), p.getTaxId(), p.getAddress(),
-                        p.getPhone(), p.getEmail(), pLocs.size(), practiceCounts.getOrDefault(p.getId(), 0L), shown));
-            }
-            if (!clientMatch && pNodes.isEmpty()) continue;
-            clientNodes.add(new ClientNode(c.getId(), c.getName(), clientPractices.size(),
-                    clientCounts.getOrDefault(c.getId(), 0L), pNodes));
+        // the organization's practices, each with its locations (no client level)
+        List<PracticeNode> pNodes = new ArrayList<>();
+        for (Practice p : practices) {
+            List<LocationResponse> pLocs = locByPractice.getOrDefault(p.getId(), List.of());
+            boolean practiceMatch = needle == null || has(p.getName(), needle) || has(p.getTaxId(), needle);
+            List<LocationResponse> shown = practiceMatch ? pLocs
+                    : pLocs.stream().filter(l -> locMatch(l, needle)).toList();
+            if (!practiceMatch && shown.isEmpty()) continue;
+            pNodes.add(new PracticeNode(p.getId(), p.getName(), p.getTaxId(), p.getAddress(),
+                    p.getPhone(), p.getEmail(), pLocs.size(), practiceCounts.getOrDefault(p.getId(), 0L), shown));
         }
         List<LocationResponse> unassigned = locations.stream()
                 .filter(l -> l.practiceId() == null && (needle == null || locMatch(l, needle))).toList();
 
         long totalProviders = providerRepository.countByOrgId(orgId);
         long assigned = providerRepository.findByOrgId(orgId).stream()
-                .filter(p -> p.getLocationId() != null || p.getPracticeId() != null || p.getClientId() != null).count();
-        Totals totals = new Totals(clients.size(), practices.size(), locations.size(), totalProviders,
-                totalProviders - assigned);
-        return new OrgTreeResponse(OrganizationResponse.of(org), clientNodes, unassigned, totals);
+                .filter(p -> p.getLocationId() != null || p.getPracticeId() != null).count();
+        Totals totals = new Totals(practices.size(), locations.size(), totalProviders, totalProviders - assigned);
+        return new OrgTreeResponse(OrganizationResponse.of(org), pNodes, unassigned, totals);
     }
 
     // ---------- organization ----------
@@ -166,97 +148,23 @@ public class OrgStructureService {
         return code;
     }
 
-    // ---------- clients ----------
-
-    @Transactional(readOnly = true)
-    public List<ClientResponse> listClients() {
-        authContext.requireStaff();
-        permissionService.require("location", "list");
-        Long orgId = authContext.orgId();
-        Map<Long, Long> counts = countMap(providerRepository.orgCountByClient(orgId));
-        Map<Long, Long> practiceCounts = practiceRepository.findByOrgId(orgId).stream()
-                .collect(Collectors.groupingBy(Practice::getClientId, Collectors.counting()));
-        return clientRepository.findByOrgIdOrderByNameAsc(orgId).stream()
-                .map(c -> new ClientResponse(c.getId(), c.getName(), practiceCounts.getOrDefault(c.getId(), 0L).intValue(),
-                        counts.getOrDefault(c.getId(), 0L)))
-                .toList();
-    }
-
-    @Transactional
-    public ClientResponse createClient(ClientRequest req) {
-        requireWrite("create");
-        String name = req.name().trim().replaceAll("\\s+", " ");
-        requireUniqueClientName(authContext.orgId(), name, null);
-        Client c = new Client();
-        c.setOrgId(authContext.orgId());
-        c.setName(name);
-        c = clientRepository.save(c);
-        return new ClientResponse(c.getId(), c.getName(), 0, 0);
-    }
-
-    @Transactional
-    public ClientResponse updateClient(Long id, ClientRequest req) {
-        requireWrite("update");
-        Long orgId = authContext.orgId();
-        Client c = loadClient(orgId, id);
-        String name = req.name().trim().replaceAll("\\s+", " ");
-        requireUniqueClientName(orgId, name, id);
-        c.setName(name);
-        clientRepository.save(c);
-        long providers = countMap(providerRepository.orgCountByClient(orgId)).getOrDefault(id, 0L);
-        return new ClientResponse(c.getId(), c.getName(), practiceRepository.findByClientId(id).size(), providers);
-    }
-
-    /** Client names are unique within an organization (case and extra spaces ignored). */
-    private void requireUniqueClientName(Long orgId, String name, Long exceptId) {
-        String key = name.toLowerCase(Locale.ROOT);
-        boolean taken = clientRepository.findByOrgId(orgId).stream()
-                .anyMatch(c -> !c.getId().equals(exceptId) && c.getName() != null
-                        && c.getName().trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT).equals(key));
-        if (taken) throw new ConflictException("A client named \"" + name + "\" already exists");
-    }
-
-    /** Deletes the client and (by FK cascade) its practices; their locations stay, detached from any practice. */
-    @Transactional
-    public DeleteResult deleteClient(Long id) {
-        requireWrite("delete");
-        Long orgId = authContext.orgId();
-        Client c = loadClient(orgId, id);
-        int detached = 0;
-        List<Practice> practices = practiceRepository.findByClientId(c.getId());
-        for (Practice p : practices) {
-            detached += detachLocations(p.getId());
-        }
-        int unassigned = providerRepository.orgUnassignClient(orgId, c.getId());
-        // the client's practices go with it (soft delete)
-        for (Practice p : practices) {
-            softDeleteCascade.practice(p.getId());
-            practiceRepository.delete(p);
-        }
-        clientRepository.deleteById(c.getId());
-        return new DeleteResult(true, unassigned, detached);
-    }
-
     // ---------- practices ----------
 
     @Transactional(readOnly = true)
-    public List<PracticeResponse> listPractices(Long clientId) {
+    public List<PracticeResponse> listPractices() {
         authContext.requireStaff();
         permissionService.require("location", "list");
         Long orgId = authContext.orgId();
-        return practiceRepository.findByOrgIdOrderByNameAsc(orgId).stream()
-                .filter(p -> clientId == null || clientId.equals(p.getClientId()))
-                .map(p -> toPractice(orgId, p)).toList();
+        return practiceRepository.findByOrgIdOrderByNameAsc(orgId).stream().map(p -> toPractice(orgId, p)).toList();
     }
 
+    /** A practice belongs directly to the organization. */
     @Transactional
-    public PracticeResponse createPractice(Long clientId, PracticeRequest req) {
+    public PracticeResponse createPractice(PracticeRequest req) {
         requireWrite("create");
         Long orgId = authContext.orgId();
-        Client c = loadClient(orgId, clientId);
         Practice p = new Practice();
         p.setOrgId(orgId);
-        p.setClientId(c.getId());
         applyPractice(p, req);
         return toPractice(orgId, practiceRepository.save(p));
     }
@@ -266,12 +174,6 @@ public class OrgStructureService {
         requireWrite("update");
         Long orgId = authContext.orgId();
         Practice p = loadPractice(orgId, id);
-        if (req.clientId() != null && !req.clientId().equals(p.getClientId())) {
-            Client target = clientRepository.findByIdAndOrgId(req.clientId(), orgId)
-                    .orElseThrow(() -> new BadRequestException("Selected client does not exist"));
-            p.setClientId(target.getId());
-            providerRepository.orgMovePracticeProviders(orgId, p.getId(), target.getId());
-        }
         applyPractice(p, req);
         return toPractice(orgId, practiceRepository.save(p));
     }
@@ -306,12 +208,10 @@ public class OrgStructureService {
     }
 
     private PracticeResponse toPractice(Long orgId, Practice p) {
-        Map<Long, String> clientNames = clientRepository.findByOrgId(orgId).stream()
-                .collect(Collectors.toMap(Client::getId, Client::getName, (a, b) -> a));
         long providers = providerRepository.countByOrgIdAndPracticeId(orgId, p.getId());
         int locs = p.getId() == null ? 0 : locationRepository.findByPracticeId(p.getId()).size();
-        return new PracticeResponse(p.getId(), p.getClientId(), clientNames.get(p.getClientId()), p.getName(),
-                p.getTaxId(), p.getAddress(), p.getPhone(), p.getEmail(), locs, providers);
+        return new PracticeResponse(p.getId(), p.getName(), p.getTaxId(), p.getAddress(), p.getPhone(), p.getEmail(),
+                locs, providers);
     }
 
     private void requireWrite(String action) {
@@ -321,10 +221,6 @@ public class OrgStructureService {
 
     private Organization loadOrg(Long orgId) {
         return organizationRepository.findById(orgId).orElseThrow(() -> NotFoundException.of("Organization", orgId));
-    }
-
-    private Client loadClient(Long orgId, Long id) {
-        return clientRepository.findByIdAndOrgId(id, orgId).orElseThrow(() -> NotFoundException.of("Client", id));
     }
 
     private Practice loadPractice(Long orgId, Long id) {

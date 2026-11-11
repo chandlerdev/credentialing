@@ -248,7 +248,7 @@ function ManageProfile({ provider }: { provider: ProviderDetail }) {
       <div className="card card-pad">
         <ProviderForm
           key={version}
-          org={{ clients: [], practices: [], locations: [] }}
+          org={{ practices: [], locations: [] }}
           initial={current}
           hasStoredPassword={!!current.hasCaqhPassword}
           providerId={current.id}

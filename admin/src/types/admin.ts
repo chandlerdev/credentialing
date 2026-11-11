@@ -16,9 +16,21 @@ export interface BundleDocument {
   expires?: string | null;
 }
 
+export interface BundlePractice {
+  id: string;
+  name: string;
+  taxId?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
 export interface DataBundleData {
   orgName?: string | null;
-  clients?: { id: string; name: string; practices?: { id: string; name: string; taxId?: string | null; address?: string | null; phone?: string | null; email?: string | null }[] }[];
+  /** the organization's practices */
+  practices?: BundlePractice[];
+  /** older files only: practices grouped under clients (imported as plain practices) */
+  clients?: { id: string; name: string; practices?: BundlePractice[] }[];
   locations?: {
     id: string;
     practiceId?: string | null;
@@ -52,7 +64,6 @@ export interface DataBundleData {
     caqhId?: string | null;
     status?: string | null;
     dateAdded?: string | null;
-    clientId?: string | null;
     practiceId?: string | null;
     locationId?: string | null;
     documents?: Record<string, BundleDocument>;

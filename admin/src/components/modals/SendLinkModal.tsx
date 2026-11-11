@@ -16,7 +16,7 @@ import type { InviteResponse } from "@/types/providers";
  * Prototype SendLinkModal (L1634).
  * - Without `provider`: AddProvider → "Send Link to Provider" → POST /providers/invite-new (creates a draft provider).
  * - With `provider`: Provider detail "Send Link" → POST /providers/{id}/invites.
- * Prototype v2: the provider is assigned to a client / practice (required) / location before the link is sent.
+ * The provider can be assigned to a practice / location (optional) before the link is sent.
  */
 export function SendLinkModal({
   provider,
@@ -25,9 +25,9 @@ export function SendLinkModal({
   onSent,
   placement,
 }: {
-  /** Organization screen: the new provider goes under this client / practice / location (pre-filled). */
-  placement?: { clientId: number | null; practiceId: number | null; locationId: number | null };
-  provider?: { id: number; firstName: string; lastName: string; email: string | null; clientId?: number | null; practiceId?: number | null; locationId?: number | null };
+  /** Organization screen: the new provider goes under this practice / location (pre-filled). */
+  placement?: { practiceId: number | null; locationId: number | null };
+  provider?: { id: number; firstName: string; lastName: string; email: string | null; practiceId?: number | null; locationId?: number | null };
   onClose: () => void;
   onBack?: () => void;
   onSent: (invite: InviteResponse) => void;
@@ -39,7 +39,6 @@ export function SendLinkModal({
     !provider && placement
       ? placementAssignment(placement)
       : {
-          clientId: provider?.clientId ? String(provider.clientId) : "",
           practiceId: provider?.practiceId ? String(provider.practiceId) : "",
           locationId: provider?.locationId ? String(provider.locationId) : "",
         }
@@ -56,7 +55,7 @@ export function SendLinkModal({
     if (!form.email.trim()) e.email = "Required";
     else if (!EMAIL_RE.test(form.email.trim())) e.email = "Valid email required";
     else if (emailTaken) e.email = emailTaken;
-    // client / practice / location are optional (they can be set later on the provider)
+    // practice / location are optional (they can be set later on the provider)
     setErrors(e);
     if (Object.keys(e).length) return;
     setBusy(true);
@@ -111,9 +110,8 @@ export function SendLinkModal({
           value={assignment}
           onChange={(a) => {
             setAssignment(a);
-            setErrors((er) => ({ ...er, clientId: "", practiceId: "", locationId: "" }));
+            setErrors((er) => ({ ...er, practiceId: "", locationId: "" }));
           }}
-          clientError={errors.clientId}
           error={errors.practiceId}
           locationError={errors.locationId}
         />

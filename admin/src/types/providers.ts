@@ -134,8 +134,6 @@ export interface ProviderDetail {
   caqhLastAttested: string | null;
   caqhLastSynced: string | null;
   caqhAttestationStatus: string | null;
-  clientId: number | null;
-  clientName: string | null;
   practiceId: number | null;
   practiceName: string | null;
   locationId: number | null;
@@ -164,7 +162,6 @@ export interface ProviderListItem {
   phone: string | null;
   npi: string | null;
   caqhId: string | null;
-  clientId: number | null;
   practiceId: number | null;
   practiceName: string | null;
   locationId: number | null;
@@ -309,17 +306,8 @@ export interface Hospital {
 
 // ---- Organization structure (docs/api/organization.md) ----
 
-export interface ClientItem {
-  id: number;
-  name: string;
-  practiceCount: number;
-  providerCount: number;
-}
-
 export interface PracticeItem {
   id: number;
-  clientId: number;
-  clientName: string | null;
   name: string;
   taxId: string | null;
   address: string | null;
@@ -333,8 +321,6 @@ export interface LocationItem {
   id: number;
   practiceId: number | null;
   practiceName: string | null;
-  clientId: number | null;
-  clientName: string | null;
   name: string;
   legalName: string | null;
   npi: string | null;
@@ -403,7 +389,6 @@ export interface PublicProfile {
   loginEmail: string | null;
   /** set by the staff member who sent the link (shown, not editable) */
   status?: string | null;
-  clientName?: string | null;
   practiceName?: string | null;
   locationName?: string | null;
   extra?: ProviderExtraView | null;

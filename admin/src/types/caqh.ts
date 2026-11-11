@@ -152,8 +152,6 @@ export interface RuleRunResult {
 // ---- Organization ----
 export interface Practice {
   id: number;
-  clientId: number;
-  clientName: string | null;
   name: string;
 }
 

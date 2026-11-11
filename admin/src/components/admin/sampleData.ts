@@ -1,28 +1,18 @@
 import type { DataBundle } from "@/types/admin";
 
 /**
- * Self-consistent sample dataset for import testing (prototype v2 buildSampleJson): 2 clients, 3 practices,
- * 5 locations, 8 providers, 40 enrollments, 4 tasks — all linked client → practice → location → provider.
+ * Self-consistent sample dataset for import testing (prototype v2 buildSampleJson): 3 practices, 5 locations,
+ * 8 providers, 40 enrollments, 4 tasks — all linked practice → location → provider.
  * Same shape as GET /admin/test-data/export, so it can be loaded with "Import JSON".
  */
 export function buildSampleJson(): DataBundle {
   const now = new Date();
   const dateOnly = (daysOffset: number) => new Date(now.getTime() + daysOffset * 86400000).toISOString().slice(0, 10);
 
-  const clients = [
-    {
-      id: "cl_sample_metro",
-      name: "MetroHealth Partners",
-      practices: [
-        { id: "pr_sample_metro_mi", name: "MetroHealth Michigan", taxId: "411234567" },
-        { id: "pr_sample_metro_oh", name: "MetroHealth Ohio", taxId: "411234568" },
-      ],
-    },
-    {
-      id: "cl_sample_pacific",
-      name: "Pacific Coast Medical",
-      practices: [{ id: "pr_sample_pacific_ca", name: "Pacific CA Group", taxId: "954321098" }],
-    },
+  const practices = [
+    { id: "pr_sample_metro_mi", name: "MetroHealth Michigan", taxId: "411234567" },
+    { id: "pr_sample_metro_oh", name: "MetroHealth Ohio", taxId: "411234568" },
+    { id: "pr_sample_pacific_ca", name: "Pacific CA Group", taxId: "954321098" },
   ];
 
   const locations = [
@@ -46,7 +36,6 @@ export function buildSampleJson(): DataBundle {
 
   const providers = seeds.map((s, i) => {
     const loc = locations.find((l) => l.id === s.loc)!;
-    const client = clients.find((c) => c.practices.some((p) => p.id === loc.practiceId))!;
     return {
       id: "p_sample_" + i,
       firstName: s.fn,
@@ -61,7 +50,6 @@ export function buildSampleJson(): DataBundle {
       licenseExpires: dateOnly(400 + i * 10),
       status: "active",
       dateAdded: dateOnly(-30 - i * 3),
-      clientId: client.id,
       practiceId: loc.practiceId,
       locationId: s.loc,
       caqhId: String(10000000 + i * 1111111).slice(-8),
@@ -100,7 +88,7 @@ export function buildSampleJson(): DataBundle {
     exportedAt: now.toISOString(),
     version: "zmart-v2-sample",
     description:
-      "Self-consistent sample dataset: 2 clients, 3 practices, 5 locations, 8 providers, 40 enrollments, 4 tasks. All linked properly across client -> practice -> location -> provider.",
-    data: { orgName: "Sample Credentialing Co.", clients, locations, providers, enrollments, tasks },
+      "Self-consistent sample dataset: 3 practices, 5 locations, 8 providers, 40 enrollments, 4 tasks. All linked properly across practice -> location -> provider.",
+    data: { orgName: "Sample Credentialing Co.", practices, locations, providers, enrollments, tasks },
   };
 }

@@ -37,7 +37,6 @@ export function ImportTarget({ value, onChange, disabled }: { value: ImportTarge
             {(practices.data || []).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
-                {p.clientName && p.clientName !== p.name ? " (" + p.clientName + ")" : ""}
               </option>
             ))}
           </Select>

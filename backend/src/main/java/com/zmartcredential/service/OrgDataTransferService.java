@@ -11,7 +11,6 @@ import com.zmartcredential.dto.organization.TestDataDtos.DataBundle;
 import com.zmartcredential.dto.organization.TestDataDtos.DataBundleData;
 import com.zmartcredential.dto.organization.TestDataDtos.DataImportResult;
 import com.zmartcredential.dto.organization.TestDataDtos.TestDataCounts;
-import com.zmartcredential.entity.Client;
 import com.zmartcredential.entity.Enrollment;
 import com.zmartcredential.entity.Location;
 import com.zmartcredential.entity.Organization;
@@ -20,7 +19,6 @@ import com.zmartcredential.entity.Practice;
 import com.zmartcredential.entity.Provider;
 import com.zmartcredential.entity.ProviderDocument;
 import com.zmartcredential.entity.Task;
-import com.zmartcredential.repository.ClientRepository;
 import com.zmartcredential.repository.EnrollmentRepository;
 import com.zmartcredential.repository.LocationRepository;
 import com.zmartcredential.repository.OrganizationRepository;
@@ -70,7 +68,6 @@ public class OrgDataTransferService {
     private static final Set<String> TASK_STATUSES = Set.of("open", "in_progress", "done");
     private static final Set<String> TASK_PRIORITIES = Set.of("low", "medium", "high", "urgent");
 
-    private final ClientRepository clientRepository;
     private final EmailRegistry emailRegistry;
     private final PracticeRepository practiceRepository;
     private final LocationRepository locationRepository;
@@ -92,11 +89,8 @@ public class OrgDataTransferService {
         String orgName = organizationRepository.findById(orgId).map(Organization::getName).orElse(null);
 
         List<Practice> practices = practiceRepository.findByOrgIdOrderByNameAsc(orgId);
-        List<BundleClient> clients = clientRepository.findByOrgIdOrderByNameAsc(orgId).stream()
-                .map(c -> new BundleClient(id(c.getId()), c.getName(), practices.stream()
-                        .filter(p -> c.getId().equals(p.getClientId()))
-                        .map(p -> new BundlePractice(id(p.getId()), p.getName(), p.getTaxId(), p.getAddress(), p.getPhone(), p.getEmail()))
-                        .toList()))
+        List<BundlePractice> bundlePractices = practices.stream()
+                .map(p -> new BundlePractice(id(p.getId()), p.getName(), p.getTaxId(), p.getAddress(), p.getPhone(), p.getEmail()))
                 .toList();
         List<BundleLocation> locations = locationRepository.findByOrgIdOrderByNameAsc(orgId).stream()
                 .map(l -> new BundleLocation(id(l.getId()), id(l.getPracticeId()), l.getName(), l.getLegalName(), l.getNpi(),
@@ -111,7 +105,7 @@ public class OrgDataTransferService {
         List<BundleProvider> providers = providerRepository.findByOrgIdOrderByLastNameAsc(orgId).stream()
                 .map(p -> new BundleProvider(id(p.getId()), p.getFirstName(), p.getLastName(), p.getSuffix(), p.getSpecialty(),
                         p.getNpi(), p.getEmail(), p.getPhone(), p.getLicenseNumber(), p.getLicenseState(), p.getLicenseExpires(),
-                        p.getDeaNumber(), p.getDeaExpires(), p.getCaqhId(), p.getStatus(), p.getDateAdded(), id(p.getClientId()),
+                        p.getDeaNumber(), p.getDeaExpires(), p.getCaqhId(), p.getStatus(), p.getDateAdded(), null,
                         id(p.getPracticeId()), id(p.getLocationId()), docs.getOrDefault(p.getId(), Map.of())))
                 .toList();
         Map<Long, String> payerCodes = new HashMap<>();
@@ -125,9 +119,9 @@ public class OrgDataTransferService {
                         id(t.getProviderId())))
                 .toList();
         return new DataBundle(OffsetDateTime.now().toString(), VERSION,
-                clients.size() + " clients, " + practices.size() + " practices, " + locations.size() + " locations, "
+                practices.size() + " practices, " + locations.size() + " locations, "
                         + providers.size() + " providers, " + enrollments.size() + " enrollments, " + tasks.size() + " tasks",
-                new DataBundleData(orgName, clients, locations, providers, enrollments, tasks));
+                new DataBundleData(orgName, bundlePractices, null, locations, providers, enrollments, tasks));
     }
 
     @Transactional
@@ -139,30 +133,20 @@ public class OrgDataTransferService {
         List<String> skipped = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
-        // clients + practices
-        Map<String, Long> clientIds = new HashMap<>();
+        // practices (top level; an older file's practices under clients are read the same way, without clients)
+        List<BundlePractice> bundlePractices = new ArrayList<>(nz(data.practices()));
+        for (BundleClient bc : nz(data.clients())) bundlePractices.addAll(nz(bc.practices()));
         Map<String, Practice> practiceById = new HashMap<>();
-        int nClients = 0;
-        for (BundleClient bc : nz(data.clients())) {
-            Client c = new Client();
-            c.setOrgId(orgId);
-            c.setName(bc.name().trim());
-            c.setTestData(true);
-            c = clientRepository.save(c);
-            clientIds.put(bc.id(), c.getId());
-            nClients++;
-            for (BundlePractice bp : nz(bc.practices())) {
-                Practice p = new Practice();
-                p.setOrgId(orgId);
-                p.setClientId(c.getId());
-                p.setName(bp.name().trim());
-                p.setTaxId(blankToNull(bp.taxId()));
-                p.setAddress(blankToNull(bp.address()));
-                p.setPhone(blankToNull(bp.phone()));
-                p.setEmail(blankToNull(bp.email()));
-                p.setTestData(true);
-                practiceById.put(bp.id(), practiceRepository.save(p));
-            }
+        for (BundlePractice bp : bundlePractices) {
+            Practice p = new Practice();
+            p.setOrgId(orgId);
+            p.setName(bp.name().trim());
+            p.setTaxId(blankToNull(bp.taxId()));
+            p.setAddress(blankToNull(bp.address()));
+            p.setPhone(blankToNull(bp.phone()));
+            p.setEmail(blankToNull(bp.email()));
+            p.setTestData(true);
+            practiceById.put(bp.id(), practiceRepository.save(p));
         }
 
         // locations
@@ -227,7 +211,7 @@ public class OrgDataTransferService {
             p.setStatus(oneOf(PROVIDER_STATUSES, bp.status()) ? bp.status() : "draft");
             p.setSource("import");
             p.setDateAdded(bp.dateAdded() == null ? today : bp.dateAdded());
-            // hierarchy: location -> practice -> client (most specific wins)
+            // hierarchy: location -> practice (most specific wins)
             Location loc = bp.locationId() == null ? null : locationById.get(bp.locationId());
             Practice pr = bp.practiceId() == null ? null : practiceById.get(bp.practiceId());
             if (loc != null && loc.getPracticeId() != null) {
@@ -236,7 +220,6 @@ public class OrgDataTransferService {
             }
             p.setLocationId(loc == null ? null : loc.getId());
             p.setPracticeId(pr == null ? null : pr.getId());
-            p.setClientId(pr != null ? pr.getClientId() : bp.clientId() == null ? null : clientIds.get(bp.clientId()));
             p.setTestData(true);
             p = providerRepository.save(p);
             documentInitializer.initialize(p);
@@ -291,7 +274,7 @@ public class OrgDataTransferService {
         taskRepository.saveAll(tasks);
 
         TestDataCounts created = new TestDataCounts(providerIds.size(), enrollments.size(), locationById.size(), 0,
-                tasks.size(), nClients, practiceById.size());
+                tasks.size(), 0, practiceById.size());
         notificationService.notifyOrg(orgId, "Data imported",
                 created.providers() + " providers, " + created.enrollments() + " enrollments, " + created.locations()
                         + " locations imported as test data" + (skipped.isEmpty() ? "" : " (" + skipped.size() + " skipped)"),

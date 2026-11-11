@@ -17,7 +17,6 @@ import { useAsync, useDebounced } from "@/lib/hooks";
 import { useFitRows } from "@/lib/useFitRows";
 import { cleanSearch } from "@/lib/utils";
 import type { PageResponse } from "@/types";
-import type { Client } from "@/types/organization";
 import type { ProviderDetail, ProviderListItem } from "@/types/providers";
 import { adminLabel } from "./OrganizationsView";
 import type { AdminSummary } from "./types";
@@ -25,8 +24,7 @@ import type { AdminSummary } from "./types";
 const ROW_H = 49;
 
 /**
- * Super admin → Providers: choose the org admin, then one of their organizations (clients); that organization's
- * providers are listed below. A row opens the provider; the pencil edits every detail of it (as Add Provider),
+ * Super admin → Providers: choose the org admin; their organization's providers are listed below. A row opens the provider; the pencil edits every detail of it (as Add Provider),
  * passwords included.
  */
 export function ProvidersListView() {
@@ -34,30 +32,20 @@ export function ProvidersListView() {
   const pathname = usePathname();
   const params = useSearchParams();
   const adminId = params.get("admin") || "";
-  const clientId = params.get("client") || "";
 
   const admins = useAsync<AdminSummary[]>(() => api.get<AdminSummary[]>("/platform/admins"), []);
   const adminList = [...(admins.data || [])].sort((a, b) => a.name.localeCompare(b.name));
   const admin = adminList.find((a) => String(a.userId) === adminId);
-  const orgId = admin?.orgId ?? null;
-  const clients = useAsync<Client[]>(orgId ? () => api.get<Client[]>("/clients", undefined, { orgId }) : null, [orgId]);
-  const clientList = [...(clients.data || [])].sort((a, b) => a.name.localeCompare(b.name));
-  const client = clientList.find((c) => String(c.id) === clientId);
 
-  const setQuery = (admin: string, client: string) => {
-    const qs = new URLSearchParams();
-    if (admin) qs.set("admin", admin);
-    if (client) qs.set("client", client);
-    router.replace(pathname + (qs.toString() ? "?" + qs : ""), { scroll: false });
-  };
+  const setQuery = (admin: string) => router.replace(pathname + (admin ? "?admin=" + admin : ""), { scroll: false });
 
   return (
     <div>
-      <PageHeader title="Providers" subtitle="Choose an org admin and one of their organizations to see its providers." />
+      <PageHeader title="Providers" subtitle="Choose an org admin to see their organization's providers." />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
           <label className="label" htmlFor="sa-p-admin">Org Admin</label>
-          <Select id="sa-p-admin" value={adminId} onChange={(e) => setQuery(e.target.value, "")} className="input" disabled={admins.loading}>
+          <Select id="sa-p-admin" value={adminId} onChange={(e) => setQuery(e.target.value)} className="input" disabled={admins.loading}>
             <option value="">{admins.loading ? "Loading admins…" : "— Select an org admin —"}</option>
             {adminList.map((a) => (
               <option key={a.userId} value={a.userId}>{adminLabel(a)}</option>
@@ -65,29 +53,17 @@ export function ProvidersListView() {
           </Select>
           {admins.error && <div className="field-error">{admins.error}</div>}
         </div>
-        <div>
-          <label className="label" htmlFor="sa-p-client">Organization</label>
-          <Select id="sa-p-client" value={clientId} onChange={(e) => setQuery(adminId, e.target.value)} className="input" disabled={!admin || clients.loading}>
-            <option value="">{!admin ? "Choose an org admin first" : clients.loading ? "Loading organizations…" : clientList.length ? "— Select an organization —" : "No organizations under this admin"}</option>
-            {clientList.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
-          {clients.error && <div className="field-error">{clients.error}</div>}
-        </div>
       </div>
-      {admin && client ? (
-        <ProviderTable key={orgId + ":" + client.id} orgId={admin.orgId} clientId={client.id} adminId={adminId} />
+      {admin ? (
+        <ProviderTable key={admin.orgId} orgId={admin.orgId} adminId={adminId} />
       ) : (
-        <div className="card card-pad text-center text-sm text-ink-light py-10">
-          {admin ? "Select an organization to see its providers." : "Select an org admin, then an organization, to see the providers."}
-        </div>
+        <div className="card card-pad text-center text-sm text-ink-light py-10">Select an org admin to see their organization&apos;s providers.</div>
       )}
     </div>
   );
 }
 
-function ProviderTable({ orgId, clientId, adminId }: { orgId: number; clientId: number; adminId: string }) {
+function ProviderTable({ orgId, adminId }: { orgId: number; adminId: string }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const q = useDebounced(search.trim());
@@ -95,8 +71,8 @@ function ProviderTable({ orgId, clientId, adminId }: { orgId: number; clientId: 
   const tableRef = useRef<HTMLDivElement>(null);
   const size = useFitRows(tableRef, ROW_H);
   const list = useAsync<PageResponse<ProviderListItem>>(
-    () => api.get<PageResponse<ProviderListItem>>("/providers", { q, clientId, page, size, sort: "lastName,asc" }, { orgId }),
-    [orgId, clientId, q, page, size]
+    () => api.get<PageResponse<ProviderListItem>>("/providers", { q, page, size, sort: "lastName,asc" }, { orgId }),
+    [orgId, q, page, size]
   );
   const data = list.data;
   const rows = data?.content || [];
@@ -168,7 +144,7 @@ function ProviderTable({ orgId, clientId, adminId }: { orgId: number; clientId: 
                     key={p.id}
                     className="cursor-pointer hover:bg-soft"
                     style={{ height: ROW_H }}
-                    onClick={() => router.push("/all-providers/" + p.id + "?org=" + orgId + "&admin=" + adminId + "&client=" + clientId)}
+                    onClick={() => router.push("/all-providers/" + p.id + "?org=" + orgId + "&admin=" + adminId)}
                   >
                     <td className="truncate font-medium text-accent" title={name}>{name}</td>
                     <td className="truncate text-ink-light" title={p.specialty || ""}>{p.specialty || "—"}</td>

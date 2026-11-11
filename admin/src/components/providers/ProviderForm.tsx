@@ -56,7 +56,6 @@ export interface ProviderFormValues {
   pecosAccessGranted?: boolean | null;
   pecosUsername?: string | null;
   status?: string | null;
-  clientId?: number | null;
   practiceId?: number | null;
   locationId?: number | null;
   taxonomyCode?: string | null;
@@ -86,7 +85,6 @@ export interface ProviderFormPayload {
   pecosAccessGranted: boolean;
   pecosUsername?: string;
   status: ProviderStatus;
-  clientId: number | null;
   practiceId: number | null;
   locationId: number | null;
   /** withLogin: the provider's sign-in password (their email is the username) */
@@ -136,7 +134,7 @@ export function ProviderForm({
   changePassword?: { hasLogin: boolean };
   /** CAQH import: the CAQH ID comes from the lookup and can't change */
   lockCaqhId?: boolean;
-  /** Organization screen: the client / practice / location are fixed */
+  /** Organization screen: the practice / location are fixed */
   lockPlacement?: boolean;
   /** the provider's own Manage Profile: email (their sign-in), NPI, status and the organization are not changed here */
   selfService?: boolean;
@@ -148,12 +146,11 @@ export function ProviderForm({
   top?: ReactNode;
 }) {
   const toast = useToast();
-  const { clients, practices, locations } = org;
+  const { practices, locations } = org;
 
-  // Derive client/practice from the location when they are missing (prototype v24 behaviour).
+  // Derive the practice from the location when it is missing.
   const initialLoc = locations.find((l) => l.id === initial.locationId);
   const initialPracticeId = initial.practiceId ?? initialLoc?.practiceId ?? null;
-  const initialClientId = initial.clientId ?? practices.find((p) => p.id === initialPracticeId)?.clientId ?? null;
 
   const [form, setForm] = useState({
     firstName: initial.firstName || "",
@@ -176,7 +173,6 @@ export function ProviderForm({
     pecosAccess: initial.pecosAccessGranted == null ? "" : initial.pecosAccessGranted ? "yes" : "no",
     pecosUsername: initial.pecosUsername || "",
     status: (initial.status || "draft") as string,
-    clientId: idStr(initialClientId),
     practiceId: idStr(initialPracticeId),
     locationId: idStr(initial.locationId),
     password: "",
@@ -196,23 +192,18 @@ export function ProviderForm({
     setErrors((er) => (er[k] ? { ...er, [k]: "" } : er));
   };
 
-  // Cascading: the practices of the chosen client, then the locations of the chosen practice
-  const availablePractices = form.clientId ? practices.filter((p) => String(p.clientId) === form.clientId) : [];
+  // Cascading: the organization's practices, then the locations of the chosen practice
+  const availablePractices = practices;
   const availableLocations = form.practiceId ? locations.filter((l) => String(l.practiceId) === form.practiceId) : [];
 
-  const handleClientChange = (clientId: string) => {
-    setForm((f) => ({ ...f, clientId, practiceId: "", locationId: "" }));
-    setErrors((er) => ({ ...er, clientId: "" }));
-  };
   const handlePracticeChange = (practiceId: string) => {
-    const parent = practices.find((p) => String(p.id) === practiceId);
-    setForm((f) => ({ ...f, practiceId, clientId: parent ? String(parent.clientId) : f.clientId, locationId: "" }));
+    setForm((f) => ({ ...f, practiceId, locationId: "" }));
     setErrors((er) => ({ ...er, practiceId: "" }));
   };
   const handleLocationChange = (locationId: string) => {
     const loc = locations.find((l) => String(l.id) === locationId);
     const practice = loc ? practices.find((p) => p.id === loc.practiceId) : null;
-    setForm((f) => ({ ...f, locationId, practiceId: practice ? String(practice.id) : f.practiceId, clientId: practice ? String(practice.clientId) : f.clientId }));
+    setForm((f) => ({ ...f, locationId, practiceId: practice ? String(practice.id) : f.practiceId }));
     setErrors((er) => ({ ...er, locationId: "", practiceId: "" }));
   };
 
@@ -292,7 +283,6 @@ export function ProviderForm({
         pecosAccessGranted: form.pecosAccess === "yes",
         pecosUsername: form.pecosAccess === "yes" ? form.pecosUsername.trim() : undefined,
         status: form.status as ProviderStatus,
-        clientId: num(form.clientId),
         practiceId: num(form.practiceId),
         locationId: num(form.locationId),
         ...(withLogin ? { password: form.password } : {}),
@@ -490,18 +480,10 @@ export function ProviderForm({
           Assign to Organization
         </div>
         <div className="grid grid-cols-1 gap-3">
-          <Field label="Client" error={err("clientId")}>
-            <Select value={form.clientId} onChange={(e) => handleClientChange(e.target.value)} className={"input" + (errors.clientId ? " input-error" : "")} disabled={lockPlacement} aria-label="Client">
-              <option value="">— Select a client —</option>
-              {clients.map((cl) => (
-                <option key={cl.id} value={cl.id}>{cl.name}</option>
-              ))}
-            </Select>
-          </Field>
           <Field
             label={
               <>
-                Practice {form.clientId && availablePractices.length === 0 && <span className="text-xs text-ink-faint">(no practices in this client)</span>}
+                Practice {availablePractices.length === 0 && <span className="text-xs text-ink-faint">(no practices yet)</span>}
               </>
             }
             error={err("practiceId")}
@@ -510,11 +492,11 @@ export function ProviderForm({
               value={form.practiceId}
               onChange={(e) => handlePracticeChange(e.target.value)}
               className="input"
-              disabled={lockPlacement || !form.clientId || availablePractices.length === 0}
+              disabled={lockPlacement || availablePractices.length === 0}
               style={errors.practiceId ? { borderColor: "var(--danger)" } : {}}
               aria-label="Practice"
             >
-              <option value="">{form.clientId ? "— Select a practice —" : "Pick a client first"}</option>
+              <option value="">— Select a practice —</option>
               {availablePractices.map((pr) => (
                 <option key={pr.id} value={pr.id}>
                   {pr.name}
@@ -529,7 +511,7 @@ export function ProviderForm({
                 Location{" "}
                 {form.practiceId && availableLocations.length === 0 && (
                   <span className="text-xs" style={{ color: "#a16207" }}>
-                    ⚠ No locations under this practice. Add one from Organization → &quot;+ Add Client / Practice / Location&quot;
+                    ⚠ No locations under this practice. Add one from Organization → &quot;+ Add Practice / Location&quot;
                   </span>
                 )}
               </>

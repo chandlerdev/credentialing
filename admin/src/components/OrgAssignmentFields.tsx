@@ -8,23 +8,20 @@ import { Icon } from "./Icon";
 import { useOrgStructure } from "@/components/providers/shared";
 
 export interface OrgAssignment {
-  clientId: string;
   practiceId: string;
   locationId: string;
 }
 
-export const EMPTY_ASSIGNMENT: OrgAssignment = { clientId: "", practiceId: "", locationId: "" };
+export const EMPTY_ASSIGNMENT: OrgAssignment = { practiceId: "", locationId: "" };
 
 /** API payload for an assignment (ids as numbers, blanks as null). */
 export const assignmentPayload = (a: OrgAssignment) => ({
-  clientId: a.clientId ? Number(a.clientId) : null,
   practiceId: a.practiceId ? Number(a.practiceId) : null,
   locationId: a.locationId ? Number(a.locationId) : null,
 });
 
 /**
- * Prototype v2 "Assign to Organization": client → practice → location, all optional when adding a provider.
- * Picking a practice fills in its client.
+ * "Assign to Organization": the organization's practice → location, both optional when adding a provider.
  */
 export function OrgAssignmentFields({
   value,
@@ -33,7 +30,6 @@ export function OrgAssignmentFields({
   error,
   locationRequired = false,
   locationError,
-  clientError,
 }: {
   value: OrgAssignment;
   onChange: (v: OrgAssignment) => void;
@@ -42,12 +38,9 @@ export function OrgAssignmentFields({
   /** adding a provider: the location must be chosen too */
   locationRequired?: boolean;
   locationError?: string;
-  /** the client is required: its message */
-  clientError?: string;
 }) {
   const org = useOrgStructure();
-  const { clients = [], practices = [], locations = [] } = org.data || {};
-  const clientPractices = value.clientId ? practices.filter((p) => String(p.clientId) === value.clientId) : [];
+  const { practices = [], locations = [] } = org.data || {};
   const practiceLocations = value.practiceId ? locations.filter((l) => String(l.practiceId) === value.practiceId) : [];
 
   return (
@@ -64,33 +57,16 @@ export function OrgAssignmentFields({
         </AlertBox>
       ) : (
         <div className="grid grid-cols-1 gap-2">
-          <Field label="Client" error={clientError}>
-            <Select
-              value={value.clientId}
-              onChange={(e) => onChange({ clientId: e.target.value, practiceId: "", locationId: "" })}
-              className="input"
-              disabled={!org.data}
-            >
-              <option value="">{org.data ? "— Select client —" : "Loading…"}</option>
-              {clients.map((cl) => (
-                <option key={cl.id} value={cl.id}>{cl.name}</option>
-              ))}
-            </Select>
-          </Field>
           <Field label="Practice" error={error}>
             <Select
               value={value.practiceId}
-              onChange={(e) => {
-                const pid = e.target.value;
-                const parent = practices.find((p) => String(p.id) === pid);
-                onChange({ clientId: parent ? String(parent.clientId) : value.clientId, practiceId: pid, locationId: "" });
-              }}
+              onChange={(e) => onChange({ practiceId: e.target.value, locationId: "" })}
               className="input"
-              disabled={!value.clientId}
+              disabled={!org.data}
               style={error ? { borderColor: "var(--danger)" } : {}}
             >
-              <option value="">{value.clientId ? "— Select practice —" : "Pick client first"}</option>
-              {clientPractices.map((p) => (
+              <option value="">{org.data ? "— Select practice —" : "Loading…"}</option>
+              {practices.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </Select>
@@ -109,9 +85,9 @@ export function OrgAssignmentFields({
               ))}
             </Select>
           </Field>
-          {org.data && clients.length === 0 && (
+          {org.data && practices.length === 0 && (
             <div className="text-[11px]" style={{ color: "#a16207" }}>
-              ⚠ No clients yet. Add one from Organization → &quot;+ Add Client / Practice / Location&quot;.
+              ⚠ No practices yet. Add one from Organization → &quot;+ Add Practice / Location&quot;.
             </div>
           )}
         </div>
@@ -121,8 +97,7 @@ export function OrgAssignmentFields({
 }
 
 /** Pre-fills the assignment from where a provider is being added (Organization screen). */
-export const placementAssignment = (p: { clientId: number | null; practiceId: number | null; locationId: number | null }): OrgAssignment => ({
-  clientId: p.clientId ? String(p.clientId) : "",
+export const placementAssignment = (p: { practiceId: number | null; locationId: number | null }): OrgAssignment => ({
   practiceId: p.practiceId ? String(p.practiceId) : "",
   locationId: p.locationId ? String(p.locationId) : "",
 });
