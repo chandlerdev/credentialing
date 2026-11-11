@@ -42,10 +42,10 @@ export function ProvidersListView() {
   return (
     <div>
       <PageHeader title="Providers" subtitle="Choose an org admin to see their organization's providers." />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="mb-4">
         <div>
           <label className="label" htmlFor="sa-p-admin">Org Admin</label>
-          <Select id="sa-p-admin" value={adminId} onChange={(e) => setQuery(e.target.value)} className="input" disabled={admins.loading}>
+          <Select id="sa-p-admin" value={adminId} onChange={(e) => setQuery(e.target.value)} className="input w-full" style={{ width: "100%" }} disabled={admins.loading}>
             <option value="">{admins.loading ? "Loading admins…" : "— Select an org admin —"}</option>
             {adminList.map((a) => (
               <option key={a.userId} value={a.userId}>{adminLabel(a)}</option>
