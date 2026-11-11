@@ -83,4 +83,16 @@ public class PlatformAdminController {
     public AdminSummary create(@Valid @RequestBody OrgSignupRequest req) {
         return service.createAdmin(req);
     }
+
+    @Operation(summary = "One admin with every detail entered at Create Admin (organization, account, plan, card)")
+    @GetMapping("/admins/{userId}")
+    public com.zmartcredential.dto.auth.PlatformDtos.AdminDetail admin(@PathVariable Long userId) {
+        return service.adminDetail(userId);
+    }
+
+    @Operation(summary = "Edit an admin: organization, account (a blank password keeps it), plan and card")
+    @PutMapping("/admins/{userId}")
+    public AdminSummary update(@PathVariable Long userId, @Valid @RequestBody com.zmartcredential.dto.auth.PlatformDtos.AdminUpdateRequest req) {
+        return service.updateAdmin(userId, req);
+    }
 }

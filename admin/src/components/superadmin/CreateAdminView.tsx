@@ -14,6 +14,7 @@ import { OrgSignupFlow } from "@/components/signup/OrgSignupFlow";
 import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { AdminsTable } from "./AdminsTable";
+import { EditAdminView } from "./EditAdminView";
 import type { AdminSummary } from "./types";
 
 /**
@@ -25,11 +26,24 @@ export function CreateAdminView() {
   const router = useRouter();
   const params = useSearchParams();
   const creating = params.get("new") === "1";
+  const editingId = params.get("edit") ? Number(params.get("edit")) : null;
   const setCreating = (on: boolean) => (on ? router.push("/create-admin?new=1") : router.push("/create-admin"));
   // remount the form after each admin so the next one starts empty
   const [formKey, setFormKey] = useState(0);
   const admins = useAsync<AdminSummary[]>(() => api.get<AdminSummary[]>("/platform/admins"), []);
 
+  if (editingId) {
+    return (
+      <EditAdminView
+        key={editingId}
+        userId={editingId}
+        onDone={() => {
+          admins.reload();
+          router.push("/create-admin");
+        }}
+      />
+    );
+  }
   if (creating) {
     return (
       <div>
@@ -79,7 +93,7 @@ export function CreateAdminView() {
           {list.length === 0 ? (
             <EmptyState icon="UserPlus" title="No admins yet" description="Click “Create Admin” to set up the first organization." />
           ) : (
-            <AdminsTable admins={shown} emptyText={"No admins match “" + search.trim() + "”"} />
+            <AdminsTable admins={shown} emptyText={"No admins match “" + search.trim() + "”"} onEdit={(a) => router.push("/create-admin?edit=" + a.userId)} />
           )}
         </AsyncBoundary>
       </div>
