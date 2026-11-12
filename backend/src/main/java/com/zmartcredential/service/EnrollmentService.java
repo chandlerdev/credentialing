@@ -600,7 +600,9 @@ public class EnrollmentService {
                     e.getNotesUpdatedAt(), e.getNotesUpdatedBy(),
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getId() : null,
                     acks.containsKey(e.getId()) ? acks.get(e.getId()).getName() : null,
-                    acks.containsKey(e.getId()) ? acks.get(e.getId()).getMimeType() : null);
+                    acks.containsKey(e.getId()) ? acks.get(e.getId()).getMimeType() : null,
+                    payer == null ? null : blankToNull(payer.getSupportPhone()),
+                    payer == null ? null : blankToNull(payer.getSupportEmail()));
         }).toList();
     }
 

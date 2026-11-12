@@ -55,6 +55,11 @@ public class PayerWorkflowController {
         return service.cards(providerId);
     }
 
+    @GetMapping("/api/payer-workflows/{id}/card")
+    public Card card(@PathVariable Long id) {
+        return service.cardOf(id);
+    }
+
     @GetMapping("/api/payer-workflows/{id}")
     public Flow flow(@PathVariable Long id) {
         return service.flow(id);

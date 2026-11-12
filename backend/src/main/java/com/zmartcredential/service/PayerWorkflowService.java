@@ -194,6 +194,17 @@ public class PayerWorkflowService {
                 .sorted(Comparator.comparing(Card::name, String.CASE_INSENSITIVE_ORDER)).toList();
     }
 
+    /** One enrollment's payer card (Call / Email from the Enrollments list). */
+    @Transactional(readOnly = true)
+    public Card cardOf(Long enrollmentId) {
+        permissionService.require("enrollment", "read");
+        authContext.requireStaff();
+        Enrollment e = load(enrollmentId);
+        Card c = card(e, support.payerMap().get(e.getPayerId()));
+        if (c == null) throw new com.zmartcredential.exception.NotFoundException("This enrollment has no payer");
+        return c;
+    }
+
     @Transactional(readOnly = true)
     public Flow flow(Long enrollmentId) {
         permissionService.require("enrollment", "read");

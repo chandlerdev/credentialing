@@ -11,6 +11,8 @@ import { NotesCell } from "@/components/NotesCell";
 import { AcknowledgementCell } from "./AcknowledgementCell";
 import { columnQuery, ColumnFilterRow, type ColumnFilters, type ColumnKey, type Sort } from "./EnrollmentColumnFilters";
 import { FollowUpLogModal } from "./FollowUpLogModal";
+import { CallModal, EmailModal, loadWorkflowMeta } from "@/components/submissions/PayerWorkflow";
+import type { PayerCard, WorkflowMeta } from "@/types/payerWorkflow";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { StatusPill } from "@/components/Pill";
@@ -73,6 +75,20 @@ export function EnrollmentsView() {
     };
   }, [fit]);
   const [touches, setTouches] = useState<{ enrollment: Enrollment; type: "call" | "email" } | null>(null);
+  // Call / Email the payer right from the list (the same dialogs as Payer Submissions)
+  const [contact, setContact] = useState<{ card: PayerCard; type: "call" | "email" } | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+  const meta = useAsync<WorkflowMeta>(loadWorkflowMeta, []);
+  const contactPayer = async (e: Enrollment, type: "call" | "email") => {
+    setOpening(type + e.id);
+    try {
+      setContact({ card: await api.get<PayerCard>("/payer-workflows/" + e.id + "/card"), type });
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setOpening(null);
+    }
+  };
   const query = useDebounced(JSON.stringify(columnQuery(filters, sort)));
   const allowed = can("list", "enrollment");
 
@@ -253,6 +269,34 @@ export function EnrollmentsView() {
                             >
                               <Icon name="Mail" size={12} /> {e.emailCount || 0}
                             </button>
+                            {(e.payerSupportPhone || e.payerSupportEmail) && can("update", "enrollment") && <span className="w-px h-4 bg-line mx-0.5" />}
+                            {/* like Payer Submissions: Call only with the payer's support phone, Email only with its support email */}
+                            {can("update", "enrollment") && e.payerSupportPhone && (
+                              <button
+                                onClick={() => contactPayer(e, "call")}
+                                className="btn btn-secondary text-xs"
+                                style={{ padding: "3px 8px", color: "var(--accent-strong)", borderColor: "var(--accent)" }}
+                                disabled={opening === "call" + e.id}
+                                title={"Call " + (e.payerName || "the payer") + " · " + e.payerSupportPhone}
+                                aria-label={"Call " + (e.payerName || "payer") + " for " + e.providerName}
+                                data-call-payer={e.id}
+                              >
+                                {opening === "call" + e.id ? <span className="loader" style={{ width: 11, height: 11 }} /> : <Icon name="PhoneCall" size={11} />} Call
+                              </button>
+                            )}
+                            {can("update", "enrollment") && e.payerSupportEmail && (
+                              <button
+                                onClick={() => contactPayer(e, "email")}
+                                className="btn btn-secondary text-xs"
+                                style={{ padding: "3px 8px", color: "var(--accent-strong)", borderColor: "var(--accent)" }}
+                                disabled={opening === "email" + e.id}
+                                title={"Email " + (e.payerName || "the payer") + " · " + e.payerSupportEmail}
+                                aria-label={"Email " + (e.payerName || "payer") + " for " + e.providerName}
+                                data-email-payer={e.id}
+                              >
+                                {opening === "email" + e.id ? <span className="loader" style={{ width: 11, height: 11 }} /> : <Icon name="Send" size={11} />} Email
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td>
@@ -317,6 +361,8 @@ export function EnrollmentsView() {
         />
       )}
 
+      {contact?.type === "call" && <CallModal card={contact.card} onClose={() => setContact(null)} onLogged={() => publish("enrollments")} />}
+      {contact?.type === "email" && meta.data && <EmailModal card={contact.card} meta={meta.data} onClose={() => setContact(null)} onLogged={() => publish("enrollments")} />}
       {touches && <FollowUpLogModal enrollment={touches.enrollment} type={touches.type} canLog={can("update", "enrollment")} onClose={() => setTouches(null)} onChanged={list.reload} />}
 
       {deleting && (

@@ -40,5 +40,8 @@ public record EnrollmentResponse(
         /* the payer's acknowledgement / approval certificate (latest 'acknowledgement' file) */
         Long acknowledgementFileId,
         String acknowledgementFileName,
-        String acknowledgementMimeType) {
+        String acknowledgementMimeType,
+        /* the payer's support phone / email (Call / Email from the Enrollments list) */
+        String payerSupportPhone,
+        String payerSupportEmail) {
 }

@@ -35,6 +35,9 @@ export interface Enrollment {
   acknowledgementFileId?: number | null;
   acknowledgementFileName?: string | null;
   acknowledgementMimeType?: string | null;
+  /** the payer's support phone / email: Call / Email from the list */
+  payerSupportPhone?: string | null;
+  payerSupportEmail?: string | null;
   tatDays: number | null;
   notes: string | null;
   assignedUserId: number | null;
