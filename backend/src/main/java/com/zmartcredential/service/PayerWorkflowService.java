@@ -500,7 +500,7 @@ public class PayerWorkflowService {
         String subject = trim(r.subject(), 255);
         String status, messageId = null;
         if (Boolean.TRUE.equals(r.send())) {
-            MailService.Result res = mailService.send(to, subject, r.body());
+            MailService.Result res = mailService.send(e.getOrgId(), to, subject, r.body());
             mailTemplateService.log(e.getOrgId(), e.getProviderId(), to, subject, res.status());
             if ("failed".equals(res.status())) throw new BadRequestException("Failed to send email" + (res.error() == null ? "" : ": " + res.error()));
             status = res.status();
@@ -513,7 +513,8 @@ public class PayerWorkflowService {
         EnrollmentWorkflowLog l = log(e, "email", "Email " + ("sent".equals(status) ? "sent" : "drafted".equals(status) ? "drafted" : status) + " to " + to + ": \"" + subject + "\""
                 + (template == null ? "" : " (template: " + template + ")"));
         l.setEmailTo(to.toLowerCase(Locale.ROOT));
-        l.setEmailFrom(mailService.fromAddress().isEmpty() ? null : mailService.fromAddress());
+        String from = mailService.fromAddress(e.getOrgId());
+        l.setEmailFrom(from.isEmpty() ? null : from.toLowerCase(Locale.ROOT));
         l.setEmailSubject(subject);
         l.setEmailBody(r.body().length() > 20000 ? r.body().substring(0, 20000) : r.body());
         l.setEmailStatus(status);
@@ -585,7 +586,8 @@ public class PayerWorkflowService {
                 .map(t -> new TemplateOption(t.getId(), t.getCode(), t.getName(), MailTemplateService.render(t.getSubject(), vars),
                         MailTemplateService.render(t.getBody(), vars), t.getOrgId() == null))
                 .toList();
-        return new EmailSetup(mailService.fromAddress(), mailService.fromName(), mailService.enabled(), inboxService.enabled(), list);
+        return new EmailSetup(mailService.fromAddress(e.getOrgId()), mailService.fromName(e.getOrgId()), mailService.enabled(e.getOrgId()),
+                inboxService.enabled(e.getOrgId()), list);
     }
 
     /** providerName → provider_name, plus the organization name. */
@@ -602,11 +604,11 @@ public class PayerWorkflowService {
                 .filter(t -> ref.equals(String.valueOf(t.getId())) || ref.equals(t.getCode())).map(t -> t.getName()).findFirst().orElse(null);
     }
 
-    /** Reads the organization's mailbox for payer replies now (it is also read every few minutes). */
+    /** Reads the organization's own mailbox for payer replies now (it is also read every few minutes). */
     public PayerInboxService.CheckResult checkInbox() {
         permissionService.require("enrollment", "read");
         authContext.requireStaff();
-        return inboxService.check();
+        return inboxService.check(authContext.orgId());
     }
 
     /** The log times are the server's local time: send them with its offset (e.g. 2026-10-30T07:21:00-05:00). */

@@ -2,8 +2,10 @@ package com.zmartcredential.service;
 
 import com.zmartcredential.entity.Enrollment;
 import com.zmartcredential.entity.EnrollmentWorkflowLog;
+import com.zmartcredential.entity.OrgMailSettings;
 import com.zmartcredential.repository.EnrollmentRepository;
 import com.zmartcredential.repository.EnrollmentWorkflowLogRepository;
+import com.zmartcredential.repository.OrgMailSettingsRepository;
 import com.zmartcredential.repository.PayerRepository;
 import com.zmartcredential.repository.ProviderRepository;
 import jakarta.mail.Address;
@@ -33,17 +35,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The payers' replies to the emails sent from Payer Submission: the organization's mailbox (the sender address) is read
- * over IMAP and each reply is logged on the enrollment it answers — matched by its In-Reply-To / References headers
- * (the Message-ID of the email we sent), else by the sender being the address we wrote to with the same subject.
- * Read-only: nothing in the mailbox is changed. On whenever email sending is on (app.mail.enabled), with the sending
- * account (spring.mail.username / password) and its IMAP server (smtp.x → imap.x); app.mail.inbox.* overrides.
+ * The payers' replies to the emails sent from Payer Submission / Enrollments: each organization's own mailbox (its mail
+ * account, super admin → Organizations → Email Settings) is read over IMAP and each reply is logged on the enrollment
+ * of that organization it answers — matched by its In-Reply-To / References headers (the Message-ID of the email we
+ * sent), else by the sender being the address we wrote to with the same subject. Read-only: nothing in the mailbox is
+ * changed.
  */
 @Slf4j
 @Service
@@ -60,93 +61,117 @@ public class PayerInboxService {
     private final PayerRepository payerRepository;
     private final NotificationService notificationService;
 
-    @Value("${app.mail.inbox.enabled:${app.mail.enabled:false}}")
-    private boolean enabled;
-    @Value("${app.mail.inbox.host:}")
-    private String inboxHost;
-    @Value("${spring.mail.host:}")
-    private String smtpHost;
-    @Value("${app.mail.inbox.port:993}")
-    private int port;
-    @Value("${app.mail.inbox.username:${spring.mail.username:}}")
-    private String username;
-    @Value("${app.mail.inbox.password:${spring.mail.password:}}")
-    private String password;
-    @Value("${app.mail.inbox.folder:INBOX}")
-    private String folderName;
-    @Value("${app.mail.inbox.days:14}")
-    private int days;
+    private final OrgMailSettingsRepository settingsRepository;
+    private final CryptoService cryptoService;
+
+    /** How many days back the mailbox is read. */
+    private static final int DAYS = 14;
 
     public record CheckResult(boolean enabled, int checked, int logged, String error) {
     }
 
-    /** The IMAP server: app.mail.inbox.host, else the SMTP server with smtp. → imap. (smtp.ionos.com → imap.ionos.com). */
-    private String host() {
-        if (inboxHost != null && !inboxHost.isBlank()) return inboxHost.trim();
-        if (smtpHost == null || smtpHost.isBlank()) return "";
-        String h = smtpHost.trim();
-        return h.startsWith("smtp.") ? "imap." + h.substring(5) : h;
+    /** True when the organization's inbox is read (its mail account is on and has an incoming server). */
+    public boolean enabled(Long orgId) {
+        if (orgId == null) return false;
+        return settingsRepository.findById(orgId).map(PayerInboxService::readable).orElse(false);
     }
 
-    public boolean enabled() {
-        String host = host();
-        return enabled && !host.isBlank() && username != null && !username.isBlank() && password != null && !password.isBlank();
+    private static boolean readable(OrgMailSettings s) {
+        return Boolean.TRUE.equals(s.getEnabled()) && Boolean.TRUE.equals(s.getImapEnabled()) && MailService.complete(s)
+                && s.getImapHost() != null && !s.getImapHost().isBlank() && s.getImapPort() != null;
     }
 
+    /** Every few minutes: each organization's own inbox. */
     @Scheduled(initialDelayString = "PT3M", fixedDelayString = "${app.mail.inbox.poll:PT5M}")
     public void poll() {
-        if (enabled()) check();
+        for (OrgMailSettings s : settingsRepository.findByEnabledTrueAndImapEnabledTrue()) {
+            if (readable(s)) check(s.getOrgId());
+        }
     }
 
-    /** Reads the mailbox's recent messages and logs the payer replies not logged yet. */
-    public synchronized CheckResult check() {
-        if (!enabled()) return new CheckResult(false, 0, 0, null);
-        Properties props = new Properties();
-        props.put("mail.store.protocol", "imaps");
-        props.put("mail.imaps.connectiontimeout", "15000");
-        props.put("mail.imaps.timeout", "30000");
-        int checked = 0, logged = 0;
+    /** Reads the organization's mailbox (recent messages) and logs the payer replies not logged yet. */
+    public synchronized CheckResult check(Long orgId) {
+        OrgMailSettings s = orgId == null ? null : settingsRepository.findById(orgId).orElse(null);
+        if (s == null || !readable(s)) return new CheckResult(false, 0, 0, null);
+        int[] counts = {0, 0};
+        String error = null;
         try {
-            Store store = Session.getInstance(props).getStore("imaps");
-            store.connect(host(), port, username, password);
-            try {
-                Folder folder = store.getFolder(folderName);
-                folder.open(Folder.READ_ONLY);
-                try {
-                    Date since = Date.from(LocalDate.now().minusDays(Math.max(1, days)).atStartOfDay(ZoneId.systemDefault()).toInstant());
-                    for (Message m : folder.search(new ReceivedDateTerm(ComparisonTerm.GE, since))) {
-                        checked++;
-                        if (m instanceof MimeMessage mm && ingest(mm).isPresent()) logged++;
-                    }
-                } finally {
-                    folder.close(false);
-                }
-            } finally {
-                store.close();
-            }
-            if (logged > 0) log.info("Payer inbox: {} checked, {} replies logged", checked, logged);
-            return new CheckResult(true, checked, logged, null);
+            read(s, cryptoService.decrypt(s.getPasswordEnc()), m -> {
+                counts[0]++;
+                if (m instanceof MimeMessage mm && ingest(mm, orgId).isPresent()) counts[1]++;
+            });
+            if (counts[1] > 0) log.info("Payer inbox of organization {}: {} checked, {} replies logged", orgId, counts[0], counts[1]);
         } catch (Exception ex) {
-            log.warn("Payer inbox check failed: {}", ex.getMessage());
-            return new CheckResult(true, checked, logged, ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+            error = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
+            log.warn("Payer inbox check of organization {} failed: {}", orgId, error);
+        }
+        s.setLastInboxCheckAt(java.time.LocalDateTime.now());
+        s.setLastInboxError(error == null ? null : error.length() > 500 ? error.substring(0, 500) : error);
+        settingsRepository.save(s);
+        return new CheckResult(true, counts[0], counts[1], error);
+    }
+
+    /** Email Settings "Test inbox": connects with the given (possibly unsaved) settings and counts recent messages. */
+    public CheckResult test(OrgMailSettings s, String password) {
+        int[] counts = {0};
+        try {
+            read(s, password, m -> counts[0]++);
+            return new CheckResult(true, counts[0], 0, null);
+        } catch (Exception ex) {
+            return new CheckResult(true, counts[0], 0, ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+        }
+    }
+
+    private interface MessageVisitor {
+        void visit(Message m) throws Exception;
+    }
+
+    /** Opens the account's folder read-only and visits the messages of the last days. */
+    private static void read(OrgMailSettings s, String password, MessageVisitor visitor) throws Exception {
+        String sec = s.getImapSecurity() == null ? "ssl" : s.getImapSecurity();
+        String protocol = "ssl".equals(sec) ? "imaps" : "imap";
+        Properties props = new Properties();
+        props.put("mail.store.protocol", protocol);
+        props.put("mail." + protocol + ".connectiontimeout", "15000");
+        props.put("mail." + protocol + ".timeout", "30000");
+        if ("starttls".equals(sec)) {
+            props.put("mail.imap.starttls.enable", "true");
+            props.put("mail.imap.starttls.required", "true");
+        }
+        Store store = Session.getInstance(props).getStore(protocol);
+        store.connect(s.getImapHost().trim(), s.getImapPort(), s.getUsername().trim(), password);
+        try {
+            Folder folder = store.getFolder(s.getImapFolder() == null || s.getImapFolder().isBlank() ? "INBOX" : s.getImapFolder().trim());
+            folder.open(Folder.READ_ONLY);
+            try {
+                Date since = Date.from(LocalDate.now().minusDays(DAYS).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                for (Message m : folder.search(new ReceivedDateTerm(ComparisonTerm.GE, since))) visitor.visit(m);
+            } finally {
+                folder.close(false);
+            }
+        } finally {
+            store.close();
         }
     }
 
     /** A raw email (RFC 822) — for testing the matching (app.mail.inbox.test-ingest=true). */
     public Optional<EnrollmentWorkflowLog> ingestRaw(String raw) throws Exception {
         MimeMessage m = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(raw.getBytes(StandardCharsets.UTF_8)));
-        return ingest(m);
+        return ingest(m, null);
     }
 
-    /** Logs the message on the enrollment it answers; empty when it answers none of our emails or is already logged. */
+    /**
+     * Logs the message on the enrollment it answers; empty when it answers none of our emails or is already logged.
+     * orgId: the organization whose mailbox it came from (only its emails are matched); null = any (test ingest).
+     */
     @Transactional
-    public Optional<EnrollmentWorkflowLog> ingest(MimeMessage m) throws Exception {
+    public Optional<EnrollmentWorkflowLog> ingest(MimeMessage m, Long orgId) throws Exception {
         String messageId = m.getMessageID();
         if (messageId != null && logRepository.existsByMessageId(messageId)) return Optional.empty();
         String from = firstAddress(m.getFrom());
         if (from == null) return Optional.empty();
         String subject = m.getSubject() == null ? "" : m.getSubject().trim();
-        EnrollmentWorkflowLog ours = match(m, from, subject).orElse(null);
+        EnrollmentWorkflowLog ours = match(m, from, subject, orgId).orElse(null);
         if (ours == null) return Optional.empty();
         Enrollment e = enrollmentRepository.findById(ours.getEnrollmentId()).orElse(null);
         if (e == null || !e.getOrgId().equals(ours.getOrgId())) return Optional.empty();
@@ -175,7 +200,7 @@ public class PayerInboxService {
     }
 
     /** The email of ours it answers: by the reply headers, else the address we wrote to and the subject. */
-    private Optional<EnrollmentWorkflowLog> match(MimeMessage m, String from, String subject) throws Exception {
+    private Optional<EnrollmentWorkflowLog> match(MimeMessage m, String from, String subject, Long orgId) throws Exception {
         Set<String> refs = new LinkedHashSet<>();
         for (String h : List.of("In-Reply-To", "References")) {
             String[] values = m.getHeader(h);
@@ -187,13 +212,16 @@ public class PayerInboxService {
         }
         if (!refs.isEmpty()) {
             Optional<EnrollmentWorkflowLog> byRef = logRepository.findByMessageIdIn(refs).stream()
-                    .filter(l -> "email".equals(l.getLogType()) && !"received".equals(l.getEmailStatus())).findFirst();
+                    .filter(l -> "email".equals(l.getLogType()) && !"received".equals(l.getEmailStatus()))
+                    .filter(l -> orgId == null || orgId.equals(l.getOrgId())).findFirst();
             if (byRef.isPresent()) return byRef;
         }
         String base = REPLY_PREFIX.matcher(subject).replaceFirst("").trim();
         if (base.isEmpty()) return Optional.empty();
-        return logRepository.findFirstByLogTypeAndEmailToIgnoreCaseAndEmailSubjectIgnoreCaseOrderByIdDesc("email", from, base)
-                .filter(l -> !"received".equals(l.getEmailStatus()));
+        Optional<EnrollmentWorkflowLog> sent = orgId == null
+                ? logRepository.findFirstByLogTypeAndEmailToIgnoreCaseAndEmailSubjectIgnoreCaseOrderByIdDesc("email", from, base)
+                : logRepository.findFirstByOrgIdAndLogTypeAndEmailToIgnoreCaseAndEmailSubjectIgnoreCaseOrderByIdDesc(orgId, "email", from, base);
+        return sent.filter(l -> !"received".equals(l.getEmailStatus()));
     }
 
     private static String firstAddress(Address[] list) {

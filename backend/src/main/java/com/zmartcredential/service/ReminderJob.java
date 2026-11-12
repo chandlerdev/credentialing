@@ -23,7 +23,7 @@ public class ReminderJob {
 
     @Scheduled(initialDelayString = "PT2M", fixedDelayString = "PT15M")
     public void runDueSchedules() {
-        if (!mailService.enabled()) return;
+        // each schedule is sent from its organization's own mail account (a failure is recorded in the email log)
         for (Long id : emailReminders.dueScheduleIds(LocalDateTime.now())) {
             try {
                 var r = emailReminders.runScheduled(id);
@@ -36,8 +36,8 @@ public class ReminderJob {
 
     @Scheduled(cron = "0 0 8 * * *")
     public void runAttestationRules() {
-        if (!mailService.enabled()) return;
         for (Long orgId : caqh.orgsWithEnabledRules()) {
+            if (!mailService.enabled(orgId)) continue;
             try {
                 var r = caqh.runRulesScheduled(orgId);
                 log.info("CAQH attestation rules for org {}: {} reminder(s), {} sent, {} failed", orgId, r.remindersQueued(), r.remindersSent(), r.remindersFailed());

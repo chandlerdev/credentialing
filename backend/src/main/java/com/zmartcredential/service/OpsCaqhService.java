@@ -341,13 +341,13 @@ public class OpsCaqhService {
             }
         }
         if (queued > 0) {
-            String detail = !mailService.enabled()
+            String detail = !mailService.enabled(orgId)
                     ? queued + " reminder(s) recorded for " + notifiedProviders.size() + " provider(s) (email sending is switched off)."
                     : sent + " reminder email(s) sent to " + notifiedProviders.size() + " provider(s)" + (failed > 0 ? ", " + failed + " failed." : ".");
             notificationService.notifyOrg(orgId, "Attestation reminders", detail, "Bell",
                     failed > 0 ? NotificationService.WARN : NotificationService.INFO);
         }
-        return new RuleRunResponse(dryRun, rules.size(), queued, matches, mailService.enabled() ? "smtp" : "deferred", sent, failed);
+        return new RuleRunResponse(dryRun, rules.size(), queued, matches, mailService.enabled(orgId) ? "smtp" : "deferred", sent, failed);
     }
 
     @Transactional
@@ -384,13 +384,13 @@ public class OpsCaqhService {
         if (p.getEmail() == null || p.getEmail().isBlank()) return "failed";
         String org = organizationRepository.findById(orgId).map(o -> o.getName()).orElse("your credentialing team");
         String[] msg = reminderText(template, p, due, org);
-        MailService.Result r = mailService.send(p.getEmail(), msg[0], msg[1]);
+        MailService.Result r = mailService.send(orgId, p.getEmail(), msg[0], msg[1]);
         if (channel.contains("manager")) {
             String note = "Copy for managers: " + OpsLookupService.plainName(p) + "'s CAQH attestation"
                     + (due == null ? "" : " was due " + due.format(LONG_DATE)) + ".\n\n" + msg[1];
             for (AppUser u : userRepository.findByOrgId(orgId)) {
                 if ("org_admin".equals(u.getRole()) && !Boolean.TRUE.equals(u.getDisabled()) && u.getEmail() != null && !u.getEmail().isBlank()) {
-                    mailService.send(u.getEmail(), "[Escalation] " + msg[0], note);
+                    mailService.send(orgId, u.getEmail(), "[Escalation] " + msg[0], note);
                 }
             }
         }

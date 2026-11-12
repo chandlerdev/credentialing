@@ -283,7 +283,7 @@ public class MailTemplateService {
                     ? "Hi " + name + ",\n\nYour enrollment with " + vars.get("payer_name") + " has been approved (effective "
                       + vars.get("effective_date") + ").\n\n" + org
                     : render(t.getBody(), vars);
-            MailService.Result r = mailService.send(p.getEmail(), subject, body);
+            MailService.Result r = mailService.send(e.getOrgId(), p.getEmail(), subject, body);
             log(e.getOrgId(), p.getId(), p.getEmail(), subject, r.status());
             notificationService.notifyOrg(e.getOrgId(), "Approval email " + ("sent".equals(r.status()) ? "sent" : r.status()),
                     "Enrollment approval for " + name + " (" + vars.get("payer_name") + ") " + ("failed".equals(r.status()) ? "could not be emailed to " : "emailed to ")

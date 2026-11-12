@@ -38,7 +38,7 @@ public class ProviderWelcomeMailer {
                           + "(the key icon next to Sign out).\n"
                         : "Password: the password you chose when you completed your profile.\n")
                     + "\nThank you,\n" + org;
-            MailService.Result r = mailService.send(p.getEmail(), subject, body);
+            MailService.Result r = mailService.send(p.getOrgId(), p.getEmail(), subject, body);
             mailTemplateService.log(p.getOrgId(), p.getId(), p.getEmail(), subject, r.status());
         } catch (Exception e) {
             log.warn("Sign-in email for provider {} failed: {}", providerId, e.getMessage());

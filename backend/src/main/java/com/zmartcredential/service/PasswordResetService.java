@@ -60,9 +60,9 @@ public class PasswordResetService {
         String body = "Hi " + (user.getFirstName() == null ? user.getDisplayName() : user.getFirstName()) + ",\n\n"
                 + "Your ZmartCredential password reset code is: " + code + "\n\n"
                 + "It is valid for " + CODE_MINUTES + " minutes. If you did not ask to reset your password, ignore this email.";
-        MailService.Result mail = mailService.send(user.getEmail(), "Your ZmartCredential password reset code", body);
-        if (!mailService.enabled()) log.info("[mail disabled] password reset code for {}: {}", user.getEmail(), code);
-        else if (!mail.sent()) log.warn("Password reset code could not be emailed to {}: {}", user.getEmail(), mail.error());
+        // sent from the user's organization's own mail account
+        MailService.Result mail = mailService.send(user.getOrgId(), user.getEmail(), "Your ZmartCredential password reset code", body);
+        if (!mail.sent()) log.warn("Password reset code could not be emailed to {}: {}", user.getEmail(), mail.error());
         return SENT_MESSAGE;
     }
 

@@ -822,7 +822,8 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
   const [form, setForm] = useState(() => ({ nextFollowUp: addDays(todayISO(), meta.followUpCadenceDays || 14), ...pick(first ? String(first.id) : "") }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  const fromLabel = setup.from || "Not configured on the server";
+  // each organization sends from its own mail account (super admin → Organizations → Email Settings)
+  const fromLabel = setup.from || "Not set up for this organization";
 
   const check = () => {
     const e: Record<string, string> = {};
@@ -896,7 +897,13 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
           <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} className={"input font-mono text-xs" + (errors.body ? " input-error" : "")} rows={12} aria-label="Message" />
         </Field>
         <NextFollowUpField value={form.nextFollowUp} onChange={(v) => setForm({ ...form, nextFollowUp: v })} error={errors.nextFollowUp} />
-        {setup.inboxEnabled && (
+        {!setup.sendingEnabled && (
+          <div className="px-3 py-2 rounded-lg flex items-start gap-2 text-xs" style={{ background: "var(--danger-soft)", color: "#991b1b" }} data-mail-not-set-up>
+            <Icon name="AlertCircle" size={14} className="mt-0.5 flex-shrink-0" />
+            <span>Email is not set up for this organization, so it can&apos;t be sent from here. Ask the super admin to set it in Organizations → Email Settings.</span>
+          </div>
+        )}
+        {setup.sendingEnabled && setup.inboxEnabled && (
           <div className="text-[11px] text-ink-faint">The payer&apos;s reply to this email is logged on the enrollment automatically (Enrollments → email follow-ups).</div>
         )}
         <div className="flex justify-end gap-2 pt-3 border-t border-line flex-wrap">
@@ -909,7 +916,7 @@ function EmailForm({ card, meta, f, setup, onClose, onLogged, toast }: { card: P
           <button className="btn btn-secondary" onClick={() => record(false)} disabled={busy !== null || !payerEmail} title="Opens your mail app with this email and logs it">
             {busy === "draft" ? <span className="loader" /> : <Icon name="ExternalLink" size={13} />} Open in email
           </button>
-          <button className="btn btn-primary" onClick={() => record(true)} disabled={busy !== null || !payerEmail}>
+          <button className="btn btn-primary" onClick={() => record(true)} disabled={busy !== null || !payerEmail || !setup.sendingEnabled} title={setup.sendingEnabled ? undefined : "Email is not set up for this organization"}>
             {busy === "send" ? <span className="loader" style={{ borderTopColor: "white" }} /> : <Icon name="Send" size={13} />} Send
           </button>
         </div>

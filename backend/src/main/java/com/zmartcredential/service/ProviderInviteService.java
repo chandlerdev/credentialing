@@ -167,7 +167,7 @@ public class ProviderInviteService {
         if (!body.contains(vars.get("upload_link"))) body += "\n\nOpen your secure link: " + vars.get("upload_link");
         if (!body.contains(inv.getPin())) body += "\nSecure access PIN: " + inv.getPin();
 
-        MailService.Result mail = mailService.send(email, subject, body);
+        MailService.Result mail = mailService.send(orgId, email, subject, body);
         EmailLog log = new EmailLog();
         log.setOrgId(orgId);
         log.setProviderId(provider.getId());

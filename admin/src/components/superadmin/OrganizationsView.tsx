@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
 import { OrgStructurePanel } from "./OrganizationTreeView";
 import { OrgPayersPanel } from "./OrgPayersPanel";
+import { OrgEmailPanel } from "./OrgEmailPanel";
 import type { AdminSummary } from "./types";
 
 /** "Jake Zebaida — ZmartCredential Billing Solutions" */
@@ -24,10 +25,11 @@ export function OrganizationsView() {
   const adminId = params.get("admin") || "";
   const admin = list.find((a) => String(a.userId) === adminId);
 
-  // Practices & Locations | Payers (kept in the address, so a reload stays on the same tab)
-  const tab = params.get("tab") === "payers" ? "payers" : "structure";
-  const setTab = (t: string) => router.replace(pathname + "?admin=" + adminId + (t === "payers" ? "&tab=payers" : ""), { scroll: false });
-  const choose = (id: string) => router.replace(pathname + (id ? "?admin=" + id + (tab === "payers" ? "&tab=payers" : "") : ""), { scroll: false });
+  // Practices & Locations | Payers | Email Settings (kept in the address, so a reload stays on the same tab)
+  const tabParam = params.get("tab");
+  const tab = tabParam === "payers" || tabParam === "email" ? tabParam : "structure";
+  const setTab = (t: string) => router.replace(pathname + "?admin=" + adminId + (t !== "structure" ? "&tab=" + t : ""), { scroll: false });
+  const choose = (id: string) => router.replace(pathname + (id ? "?admin=" + id + (tab !== "structure" ? "&tab=" + tab : "") : ""), { scroll: false });
 
   return (
     <div>
@@ -48,14 +50,17 @@ export function OrganizationsView() {
             tabs={[
               { id: "structure", label: "Practices & Locations", icon: "Building2" },
               { id: "payers", label: "Payers", icon: "CreditCard" },
+              { id: "email", label: "Email Settings", icon: "Mail" },
             ]}
-            value={tab === "payers" ? "payers" : "structure"}
+            value={tab}
             onChange={setTab}
           />
           {tab === "structure" ? (
             <OrgStructurePanel key={admin.orgId} orgId={admin.orgId} />
-          ) : (
+          ) : tab === "payers" ? (
             <OrgPayersPanel key={admin.orgId} orgId={admin.orgId} adminName={admin.name} />
+          ) : (
+            <OrgEmailPanel key={admin.orgId} orgId={admin.orgId} orgName={admin.orgName || admin.name} />
           )}
         </>
       ) : (

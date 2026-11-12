@@ -98,7 +98,7 @@ public class DocumentExpiryNoticeJob {
                     + "Your " + label + " on file with " + org + " expires on " + when + ".\n\n"
                     + "Please upload the renewed document so your credentialing stays current. Sign in: " + signIn + "\n\n"
                     + "Thank you,\n" + org;
-            mailTemplateService.log(p.getOrgId(), p.getId(), p.getEmail(), subject, mailService.send(p.getEmail(), subject, body).status());
+            mailTemplateService.log(p.getOrgId(), p.getId(), p.getEmail(), subject, mailService.send(p.getOrgId(), p.getEmail(), subject, body).status());
         }
 
         // the organization's admins: in the app and by email
@@ -116,7 +116,7 @@ public class DocumentExpiryNoticeJob {
                         + "The " + label + " of " + providerName + (p.getNpi() == null ? "" : " (NPI " + p.getNpi() + ")")
                         + " expires on " + when + ".\n\n"
                         + "Please follow up with the provider for the renewed document. Sign in: " + signIn + "\n\n" + org;
-                mailTemplateService.log(p.getOrgId(), p.getId(), a.getEmail(), subject, mailService.send(a.getEmail(), subject, body).status());
+                mailTemplateService.log(p.getOrgId(), p.getId(), a.getEmail(), subject, mailService.send(p.getOrgId(), a.getEmail(), subject, body).status());
             }
         }
     }

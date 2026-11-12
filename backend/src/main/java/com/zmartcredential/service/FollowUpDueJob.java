@@ -96,7 +96,7 @@ public class FollowUpDueJob {
                 String body = "Hi " + (u.getFirstName() == null || u.getFirstName().isBlank() ? "there" : u.getFirstName()) + ",\n\n"
                         + "The next follow-up with " + payer + " for " + provider + " is due " + when + "." + last + "\n\n"
                         + "Call or email the payer from Payer Submission and log it. Enrollments: " + link + "\n\n" + org;
-                mailTemplateService.log(e.getOrgId(), e.getProviderId(), u.getEmail(), subject, mailService.send(u.getEmail(), subject, body).status());
+                mailTemplateService.log(e.getOrgId(), e.getProviderId(), u.getEmail(), subject, mailService.send(e.getOrgId(), u.getEmail(), subject, body).status());
             }
         }
     }

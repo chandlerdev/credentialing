@@ -307,12 +307,12 @@ public class OpsEmailReminderService {
         s.setLastSentAt(now);
         if (Boolean.TRUE.equals(s.getActive())) s.setNextRunAt(advance(now.toLocalDate().atTime(RUN_TIME), s.getCadence()));
         scheduleRepository.save(s);
-        return new SendNowResponse(processed, skipped, mailService.enabled() ? "smtp" : "deferred",
-                summary(sent, failed, lastError), sent, failed);
+        return new SendNowResponse(processed, skipped, mailService.enabled(orgId) ? "smtp" : "deferred",
+                summary(orgId, sent, failed, lastError), sent, failed);
     }
 
-    private String summary(int sent, int failed, String lastError) {
-        if (!mailService.enabled()) return MAIL_OFF;
+    private String summary(Long orgId, int sent, int failed, String lastError) {
+        if (!mailService.enabled(orgId)) return MAIL_OFF;
         if (failed == 0) return sent + " email(s) sent.";
         return sent + " email(s) sent, " + failed + " failed" + (lastError == null ? "." : ": " + lastError);
     }
@@ -352,7 +352,7 @@ public class OpsEmailReminderService {
      * Used by other ops services too.
      */
     public MailService.Result deliver(Long orgId, Provider p, Long scheduleId, String subject, String body) {
-        MailService.Result r = mailService.send(p.getEmail(), subject, body);
+        MailService.Result r = mailService.send(orgId, p.getEmail(), subject, body);
         EmailLog e = new EmailLog();
         e.setOrgId(orgId);
         e.setProviderId(p.getId());

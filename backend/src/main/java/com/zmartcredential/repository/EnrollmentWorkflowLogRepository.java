@@ -17,4 +17,6 @@ public interface EnrollmentWorkflowLogRepository extends JpaRepository<Enrollmen
     List<EnrollmentWorkflowLog> findByMessageIdIn(Collection<String> messageIds);
 
     Optional<EnrollmentWorkflowLog> findFirstByLogTypeAndEmailToIgnoreCaseAndEmailSubjectIgnoreCaseOrderByIdDesc(String logType, String emailTo, String emailSubject);
+
+    Optional<EnrollmentWorkflowLog> findFirstByOrgIdAndLogTypeAndEmailToIgnoreCaseAndEmailSubjectIgnoreCaseOrderByIdDesc(Long orgId, String logType, String emailTo, String emailSubject);
 }
