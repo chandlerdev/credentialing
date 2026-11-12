@@ -215,7 +215,7 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Payer Name" required error={errors.name}>
-            <input value={form.name} onChange={(e) => set("name", e.target.value.replace(/^\s+/, ""))} className={"input" + (errors.name ? " input-error" : "")} maxLength={120} placeholder="e.g. BCBS TX" />
+            <input value={form.name} onChange={(e) => set("name", e.target.value.replace(/^\s+/, ""))} className={"input" + (errors.name ? " input-error" : "")} maxLength={120} placeholder="Enter Payer Name" />
           </Field>
           <Field label="Payer Category" required error={errors.category}>
             <Select value={form.category} onChange={(e) => set("category", e.target.value)} className={"input" + (errors.category ? " input-error" : "")}>
@@ -228,7 +228,7 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Insurance Company Name" required error={errors.fullName}>
-            <input value={form.fullName} onChange={(e) => set("fullName", e.target.value.replace(/^\s+/, ""))} className={"input" + (errors.fullName ? " input-error" : "")} maxLength={200} placeholder="e.g. Blue Cross Blue Shield of Texas" />
+            <input value={form.fullName} onChange={(e) => set("fullName", e.target.value.replace(/^\s+/, ""))} className={"input" + (errors.fullName ? " input-error" : "")} maxLength={200} placeholder="Enter Insurance Company Name" />
           </Field>
           <Field label="CAQH Update" error={errors.caqhUpdate}>
             <input value={form.caqhUpdate} onChange={(e) => set("caqhUpdate", e.target.value.replace(/^\s+/, ""))} className="input" maxLength={255} />
@@ -236,7 +236,7 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Avg TAT (days)" error={errors.avgTatDays}>
-            <input value={form.avgTatDays} onChange={(e) => set("avgTatDays", e.target.value.replace(/\D/g, "").slice(0, 3))} className={"input font-mono" + (errors.avgTatDays ? " input-error" : "")} inputMode="numeric" placeholder="e.g. 49" />
+            <input value={form.avgTatDays} onChange={(e) => set("avgTatDays", e.target.value.replace(/\D/g, "").slice(0, 3))} className={"input font-mono" + (errors.avgTatDays ? " input-error" : "")} inputMode="numeric" placeholder="Enter Avg TAT (days)" />
           </Field>
           <Field label="Integration" error={errors.integration}>
             <Select value={form.integration} onChange={(e) => set("integration", e.target.value)} className={"input" + (errors.integration ? " input-error" : "")}>
@@ -257,7 +257,7 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
           </Field>
         </div>
         <Field label="Form" error={errors.appForm}>
-          <input value={form.appForm} onChange={(e) => set("appForm", e.target.value.replace(/^\s+/, ""))} className={"input" + (errors.appForm ? " input-error" : "")} maxLength={150} placeholder="e.g. Ambetter Provider Set-up Form" />
+          <input value={form.appForm} onChange={(e) => set("appForm", e.target.value.replace(/^\s+/, ""))} className={"input" + (errors.appForm ? " input-error" : "")} maxLength={150} placeholder="Enter Form" />
         </Field>
         {/* last: the portal login URL is asked only when the payer has a portal */}
         {/* Is portal available → Portal Login URL; API access → API key and token */}
@@ -279,7 +279,7 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
               onChange={(e) => set("portalUrl", e.target.value.replace(/\s/g, ""))}
               className={"input font-mono" + (errors.portalUrl ? " input-error" : "")}
               maxLength={500}
-              placeholder="https://provider.payer.com/login"
+              placeholder="Enter Portal Login URL"
               inputMode="url"
               autoComplete="off"
               autoFocus
@@ -300,10 +300,10 @@ export function PayerFormModal({ payer, mode = "platform", onClose, onSaved }: {
         {form.apiAccess && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="API Key" required={!keySaved} error={errors.apiKey} hint={keySaved ? "Saved — leave blank to keep it" : undefined}>
-              <PasswordInput value={form.apiKey} onChange={(e) => set("apiKey", e.target.value.trim())} className={"input font-mono" + (errors.apiKey ? " input-error" : "")} maxLength={2000} autoComplete="off" placeholder={keySaved ? "••••••••" : "API key"} />
+              <PasswordInput value={form.apiKey} onChange={(e) => set("apiKey", e.target.value.trim())} className={"input font-mono" + (errors.apiKey ? " input-error" : "")} maxLength={2000} autoComplete="off" placeholder={keySaved ? "••••••••" : "Enter API Key"} />
             </Field>
             <Field label="API Token" required={!tokenSaved} error={errors.apiToken} hint={tokenSaved ? "Saved — leave blank to keep it" : undefined}>
-              <PasswordInput value={form.apiToken} onChange={(e) => set("apiToken", e.target.value.trim())} className={"input font-mono" + (errors.apiToken ? " input-error" : "")} maxLength={4000} autoComplete="off" placeholder={tokenSaved ? "••••••••" : "API token"} />
+              <PasswordInput value={form.apiToken} onChange={(e) => set("apiToken", e.target.value.trim())} className={"input font-mono" + (errors.apiToken ? " input-error" : "")} maxLength={4000} autoComplete="off" placeholder={tokenSaved ? "••••••••" : "Enter API Token"} />
             </Field>
           </div>
         )}

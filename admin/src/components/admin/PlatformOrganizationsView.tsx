@@ -313,7 +313,7 @@ function NewOrganizationModal({ onClose, onCreated }: { onClose: () => void; onC
     <Modal title="New Organization" subtitle="Create a tenant organization, optionally with a plan and its first admin" onClose={onClose} maxWidth={640}>
       <div className="space-y-3">
         <Field label="Organization Name *" error={errors.name}>
-          <input value={form.name} onChange={(e) => set("name", e.target.value)} className="input" placeholder="ACME Medical Group, P.A." autoFocus />
+          <input value={form.name} onChange={(e) => set("name", e.target.value)} className="input" placeholder="Enter Organization Name" autoFocus />
         </Field>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Organization Type" error={errors.orgType}>
@@ -322,7 +322,7 @@ function NewOrganizationModal({ onClose, onCreated }: { onClose: () => void; onC
             </Select>
           </Field>
           <Field label="Tax ID (EIN)" error={errors.taxId}>
-            <input value={form.taxId} onChange={(e) => set("taxId", e.target.value.replace(/\D/g, "").slice(0, 9))} className="input font-mono" placeholder="9 digits" />
+            <input value={form.taxId} onChange={(e) => set("taxId", e.target.value.replace(/\D/g, "").slice(0, 9))} className="input font-mono" placeholder="Enter Tax ID (EIN)" />
           </Field>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -334,7 +334,7 @@ function NewOrganizationModal({ onClose, onCreated }: { onClose: () => void; onC
           </Field>
         </div>
         <Field label="Website" error={errors.website}>
-          <input value={form.website} onChange={(e) => set("website", e.target.value)} className="input" placeholder="https://acmemedical.com" />
+          <input value={form.website} onChange={(e) => set("website", e.target.value)} className="input" placeholder="Enter Website" />
         </Field>
         <Field label="Address" error={errors.address}>
           <input value={form.address} onChange={(e) => set("address", e.target.value)} className="input" />
@@ -395,7 +395,7 @@ function NewOrganizationModal({ onClose, onCreated }: { onClose: () => void; onC
               </Field>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Field label="Password *" error={errors.adminPassword}>
-                  <input type="password" value={form.adminPassword} onChange={(e) => set("adminPassword", e.target.value)} className="input" placeholder="At least 8 characters" autoComplete="new-password" />
+                  <input type="password" value={form.adminPassword} onChange={(e) => set("adminPassword", e.target.value)} className="input" placeholder="Enter Password" autoComplete="new-password" />
                 </Field>
                 <Field label="Title" error={errors.adminTitle}>
                   <input value={form.adminTitle} onChange={(e) => set("adminTitle", e.target.value)} className="input" />

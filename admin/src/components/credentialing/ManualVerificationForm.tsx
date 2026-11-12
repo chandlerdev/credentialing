@@ -84,7 +84,7 @@ export function ManualVerificationForm({
         </Field>
       </div>
       <Field label="Notes" error={errors.message}>
-        <textarea value={message} onChange={(e) => setMessage(e.target.value)} className={"input " + (errors.message ? "input-error" : "")} rows={2} maxLength={500} placeholder="e.g. Verified on the public registry, no flags" />
+        <textarea value={message} onChange={(e) => setMessage(e.target.value)} className={"input " + (errors.message ? "input-error" : "")} rows={2} maxLength={500} placeholder="Enter Notes" />
       </Field>
       <div className="flex justify-end">
         <button onClick={save} disabled={busy || !providerId} className="btn btn-primary">

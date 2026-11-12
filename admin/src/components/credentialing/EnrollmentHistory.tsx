@@ -188,7 +188,7 @@ function EventModal({ mode, enrollmentId, onClose, onSaved }: { mode: "note" | "
         )}
         <Field label={mode === "note" ? "Note" : "Note (optional)"} error={error} required={mode === "note"}>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} className={"input " + (error ? "input-error" : "")} rows={3} autoFocus
-                    placeholder={mode === "note" ? "e.g. Called provider relations — pending review" : "e.g. Added the missing collaborative agreement"} />
+                    placeholder="Enter Note" />
         </Field>
         <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <button onClick={onClose} className="btn btn-secondary" disabled={busy}>Cancel</button>

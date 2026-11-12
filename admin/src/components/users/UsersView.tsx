@@ -373,7 +373,7 @@ export function UserFormModal({ user, isSelf, onSaved, onClose }: { user: User |
           </Field>
         </div>
         <Field label="Title" error={errors.title}>
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input" placeholder="e.g. Credentialing Specialist" maxLength={120} />
+          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input" placeholder="Enter Title" maxLength={120} />
         </Field>
         {access === "provider" && (
           <Field label="Linked Provider *" error={errors.providerId}>
@@ -397,7 +397,7 @@ export function UserFormModal({ user, isSelf, onSaved, onClose }: { user: User |
             <PhoneInput value={form.phone} onChange={(v) => { setForm({ ...form, phone: v }); setErrors((er) => ({ ...er, phone: "" })); }} invalid={!!errors.phone} />
           </Field>
           <Field label={user ? "New Password" : "Password *"} error={errors.password} hint={user ? "Blank = keep the current one" : undefined}>
-            <PasswordInput value={form.password} onChange={(e) => { setForm({ ...form, password: e.target.value }); setErrors((er) => ({ ...er, password: "" })); }} className="input" placeholder="At least 8 characters" autoComplete="new-password" />
+            <PasswordInput value={form.password} onChange={(e) => { setForm({ ...form, password: e.target.value }); setErrors((er) => ({ ...er, password: "" })); }} className="input" placeholder="Enter Password" autoComplete="new-password" />
           </Field>
         </div>
         {user && user.username !== user.email && (

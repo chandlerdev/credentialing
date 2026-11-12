@@ -268,7 +268,7 @@ export function PayerCredentialVault() {
               <div className="space-y-3">
                 <div>
                   <label className="label">Master Passphrase</label>
-                  <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} className="input" placeholder="At least 8 characters" autoFocus />
+                  <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} className="input" placeholder="Enter Master Passphrase" autoFocus />
                   <div className="text-[10px] text-ink-faint mt-1">Longer is better. A memorable sentence beats a short random string.</div>
                 </div>
                 <div>

@@ -150,7 +150,7 @@ export function CaqhConfigView() {
                 <h3 className="font-semibold text-sm text-ink mb-3">API Credentials</h3>
                 <div className="space-y-3">
                   <Field label="API Base URL" error={errors.apiUrl} hint={<>The URL will be called as: <span className="font-mono">GET {local.apiUrl || "{apiUrl}"}/providers/{"{caqhId}"}</span></>}>
-                    <input value={local.apiUrl} onChange={(e) => set("apiUrl", e.target.value)} className="input font-mono" placeholder="https://api.caqh.org/v1" disabled={!canEdit} />
+                    <input value={local.apiUrl} onChange={(e) => set("apiUrl", e.target.value)} className="input font-mono" placeholder="Enter API Base URL" disabled={!canEdit} />
                   </Field>
                   <Field
                     label="API Key / Bearer Token"
@@ -169,13 +169,13 @@ export function CaqhConfigView() {
                       value={local.apiKey}
                       onChange={(e) => set("apiKey", e.target.value)}
                       className="input font-mono"
-                      placeholder={saved.hasApiKey ? "•••••••• (stored — leave blank to keep)" : "Your CAQH API key"}
+                      placeholder={saved.hasApiKey ? "•••••••• (stored — leave blank to keep)" : "Enter API Key / Bearer Token"}
                       autoComplete="new-password"
                       disabled={!canEdit}
                     />
                   </Field>
                   <Field label="Organization ID (optional)" error={errors.orgId} hint={<>Sent as: <span className="font-mono">X-Org-Id: &lt;orgId&gt;</span></>}>
-                    <input value={local.orgId} onChange={(e) => set("orgId", e.target.value)} className="input font-mono" placeholder="Your CAQH-assigned org ID" disabled={!canEdit} />
+                    <input value={local.orgId} onChange={(e) => set("orgId", e.target.value)} className="input font-mono" placeholder="Enter Organization ID" disabled={!canEdit} />
                   </Field>
                   <div className="p-3 rounded text-xs" style={{ background: "var(--warn-soft)", color: "#92400e" }}>
                     <Icon name="AlertTriangle" size={11} className="inline mr-1" />

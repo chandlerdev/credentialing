@@ -104,7 +104,7 @@ export function SendLinkModal({
           </Field>
         </div>
         <Field label="Email" required error={errors.email || emailTaken}>
-          <input value={form.email} onChange={(e) => set("email", e.target.value)} type="email" className="input" placeholder="provider@example.com" />
+          <input value={form.email} onChange={(e) => set("email", e.target.value)} type="email" className="input" placeholder="Enter Email" />
         </Field>
         <OrgAssignmentFields
           value={assignment}

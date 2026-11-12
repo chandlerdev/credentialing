@@ -39,6 +39,8 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
   const [checking, setChecking] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const isCall = type === "call";
+  // the dates belong to the follow-ups: none logged of this kind yet → "—"
+  const hasLogs = (q.data?.length ?? 0) > 0;
 
   const checkInbox = async () => {
     setChecking(true);
@@ -60,13 +62,13 @@ export function FollowUpLogModal({ enrollment: e, type, canLog = false, onClose,
       <div className={"grid grid-cols-1 gap-2 mb-3 text-xs" + (isCall ? " sm:grid-cols-2" : "")}>
         <div className="rounded-lg px-3 py-2" style={{ background: "var(--bg-soft)" }}>
           <div className="text-ink-faint">Last Follow Up</div>
-          <div className="font-semibold">{e.followUpDate ? fmtDate(e.followUpDate) : "—"}</div>
+          <div className="font-semibold" data-last-box>{hasLogs && e.followUpDate ? fmtDate(e.followUpDate) : "—"}</div>
         </div>
         {/* the email list has no Next Follow Up (it is set from Payer Submission) */}
         {isCall && (
           <div className="rounded-lg px-3 py-2" style={{ background: "var(--bg-soft)" }} data-next-box>
             <div className="text-ink-faint">Next Follow Up</div>
-            <div className="font-semibold">{e.nextFollowUpDate ? fmtDate(e.nextFollowUpDate) : "—"}</div>
+            <div className="font-semibold">{hasLogs && e.nextFollowUpDate ? fmtDate(e.nextFollowUpDate) : "—"}</div>
           </div>
         )}
       </div>

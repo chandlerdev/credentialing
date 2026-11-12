@@ -147,7 +147,7 @@ function ConnectionForm({ config, onSaved, onGoToCsv }: { config: CaqhConfig; on
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="CAQH Username" error={errors.directUsername}>
-                <input value={form.direct.username} onChange={(e) => setForm({ ...form, direct: { ...form.direct, username: e.target.value } })} className="input" placeholder="provided by CAQH" />
+                <input value={form.direct.username} onChange={(e) => setForm({ ...form, direct: { ...form.direct, username: e.target.value } })} className="input" placeholder="Enter CAQH Username" />
               </Field>
               <Field label="CAQH Password" error={errors.directPassword}>
                 <input
@@ -161,7 +161,7 @@ function ConnectionForm({ config, onSaved, onGoToCsv }: { config: CaqhConfig; on
               </Field>
             </div>
             <Field label="Participating Organization ID" error={errors.directOrgId}>
-              <input value={form.direct.organizationId} onChange={(e) => setForm({ ...form, direct: { ...form.direct, organizationId: e.target.value } })} className="input font-mono" placeholder="e.g. PO_12345" />
+              <input value={form.direct.organizationId} onChange={(e) => setForm({ ...form, direct: { ...form.direct, organizationId: e.target.value } })} className="input font-mono" placeholder="Enter Participating Organization ID" />
             </Field>
             <div>
               <label className="label">API Environment</label>
@@ -213,7 +213,7 @@ function ConnectionForm({ config, onSaved, onGoToCsv }: { config: CaqhConfig; on
                 value={form.aggregator.apiKey}
                 onChange={(e) => setForm({ ...form, aggregator: { ...form.aggregator, apiKey: e.target.value } })}
                 className="input font-mono"
-                placeholder={config.hasAggregatorKey ? SAVED_PLACEHOLDER : "from vendor dashboard"}
+                placeholder={config.hasAggregatorKey ? SAVED_PLACEHOLDER : "Enter API Key"}
                 autoComplete="new-password"
               />
             </Field>

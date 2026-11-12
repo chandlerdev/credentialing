@@ -305,7 +305,7 @@ function RoleModal({ role, onClose, onSaved }: { role: UserRoleItem | null; onCl
             className="input"
             maxLength={80}
             autoFocus
-            placeholder="e.g. Credentialing Specialist"
+            placeholder="Enter Role Name"
           />
         </Field>
         <div className="flex justify-end gap-2 pt-3 border-t border-line">

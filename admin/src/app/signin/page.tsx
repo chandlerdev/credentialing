@@ -119,11 +119,11 @@ function SignInScreen() {
             <form onSubmit={handleSignIn} className="space-y-4" noValidate>
               <div>
                 <label className="label" htmlFor="username">Username</label>
-                <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" className="input" placeholder="username" />
+                <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" className="input" placeholder="Enter Username" />
               </div>
               <div>
                 <label className="label" htmlFor="password">Password</label>
-                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="input" placeholder="••••••••" />
+                <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="input" placeholder="Enter Password" />
               </div>
               {error && (
                 <div className="px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: "var(--danger-soft)", color: "#991b1b", fontSize: 13 }}>

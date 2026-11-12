@@ -205,10 +205,10 @@ export function OrgEmailPanel({ orgId, orgName }: { orgId: number; orgName: stri
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="From Name" error={errors.fromName} hint="Shown as the sender, e.g. the organization name">
-            <input value={form.fromName} onChange={(e) => set("fromName", e.target.value.slice(0, 120))} className="input" placeholder={orgName} aria-label="From Name" />
+            <input value={form.fromName} onChange={(e) => set("fromName", e.target.value.slice(0, 120))} className="input" placeholder="Enter From Name" aria-label="From Name" />
           </Field>
           <Field label={"From Email" + (form.enabled ? " *" : "")} error={errors.fromEmail}>
-            <input type="email" value={form.fromEmail} onChange={(e) => set("fromEmail", e.target.value.slice(0, 255))} className={"input" + (errors.fromEmail ? " input-error" : "")} placeholder="credentialing@organization.com" aria-label="From Email" />
+            <input type="email" value={form.fromEmail} onChange={(e) => set("fromEmail", e.target.value.slice(0, 255))} className={"input" + (errors.fromEmail ? " input-error" : "")} placeholder="Enter From Email" aria-label="From Email" />
           </Field>
         </div>
       </div>
@@ -221,7 +221,7 @@ export function OrgEmailPanel({ orgId, orgName }: { orgId: number; orgName: stri
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Field label={"SMTP Host" + (form.enabled ? " *" : "")} error={errors.smtpHost} className="sm:col-span-2">
-                <input value={form.smtpHost} onChange={(e) => set("smtpHost", e.target.value.trim().slice(0, 255))} className={"input" + (errors.smtpHost ? " input-error" : "")} placeholder="smtp.office365.com" aria-label="SMTP Host" />
+                <input value={form.smtpHost} onChange={(e) => set("smtpHost", e.target.value.trim().slice(0, 255))} className={"input" + (errors.smtpHost ? " input-error" : "")} placeholder="Enter SMTP Host" aria-label="SMTP Host" />
               </Field>
               <Field label={"Port" + (form.enabled ? " *" : "")} error={errors.smtpPort}>
                 <input value={form.smtpPort} onChange={(e) => set("smtpPort", e.target.value.replace(/\D/g, "").slice(0, 5))} className={"input font-mono" + (errors.smtpPort ? " input-error" : "")} inputMode="numeric" aria-label="SMTP Port" />
@@ -259,7 +259,7 @@ export function OrgEmailPanel({ orgId, orgName }: { orgId: number; orgName: stri
           <div className="space-y-3" style={form.imapEnabled ? undefined : { opacity: 0.55 }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Field label={"IMAP Host" + (form.imapEnabled ? " *" : "")} error={errors.imapHost} className="sm:col-span-2">
-                <input value={form.imapHost} onChange={(e) => set("imapHost", e.target.value.trim().slice(0, 255))} className={"input" + (errors.imapHost ? " input-error" : "")} placeholder="outlook.office365.com" disabled={!form.imapEnabled} aria-label="IMAP Host" />
+                <input value={form.imapHost} onChange={(e) => set("imapHost", e.target.value.trim().slice(0, 255))} className={"input" + (errors.imapHost ? " input-error" : "")} placeholder="Enter IMAP Host" disabled={!form.imapEnabled} aria-label="IMAP Host" />
               </Field>
               <Field label={"Port" + (form.imapEnabled ? " *" : "")} error={errors.imapPort}>
                 <input value={form.imapPort} onChange={(e) => set("imapPort", e.target.value.replace(/\D/g, "").slice(0, 5))} className={"input font-mono" + (errors.imapPort ? " input-error" : "")} inputMode="numeric" disabled={!form.imapEnabled} aria-label="IMAP Port" />
@@ -303,7 +303,7 @@ export function OrgEmailPanel({ orgId, orgName }: { orgId: number; orgName: stri
                   setErrors((er) => ({ ...er, testTo: "" }));
                 }}
                 className={"input" + (errors.testTo ? " input-error" : "")}
-                placeholder="you@example.com"
+                placeholder="Enter Email"
                 aria-label="Test email address"
               />
             </Field>

@@ -98,7 +98,7 @@ export function AddCardModal({ onClose, onAdded }: { onClose: () => void; onAdde
               value={form.number}
               onChange={(e) => setForm({ ...form, number: formatCardNumber(e.target.value) })}
               className="input font-mono"
-              placeholder="1234 5678 9012 3456"
+              placeholder="Enter Card Number"
               style={{ paddingRight: 60 }}
               autoComplete="cc-number"
               inputMode="numeric"
@@ -113,19 +113,19 @@ export function AddCardModal({ onClose, onAdded }: { onClose: () => void; onAdde
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Expiration (MM/YY)" error={fieldErrors.exp}>
-            <input value={form.exp} onChange={(e) => setForm({ ...form, exp: formatExp(e.target.value) })} className="input font-mono" placeholder="12/27" autoComplete="cc-exp" inputMode="numeric" />
+            <input value={form.exp} onChange={(e) => setForm({ ...form, exp: formatExp(e.target.value) })} className="input font-mono" placeholder="Enter Expiration (MM/YY)" autoComplete="cc-exp" inputMode="numeric" />
           </Field>
           <Field label="CVC">
-            <input value={form.cvc} onChange={(e) => setForm({ ...form, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} className="input font-mono" placeholder="123" autoComplete="cc-csc" inputMode="numeric" />
+            <input value={form.cvc} onChange={(e) => setForm({ ...form, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })} className="input font-mono" placeholder="Enter CVC" autoComplete="cc-csc" inputMode="numeric" />
           </Field>
         </div>
 
         <Field label="Cardholder Name" error={fieldErrors.billingName}>
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="As shown on card" autoComplete="cc-name" />
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="Enter Cardholder Name" autoComplete="cc-name" />
         </Field>
 
         <Field label="Billing ZIP" error={fieldErrors.billingZip}>
-          <input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value.replace(/\D/g, "").slice(0, 5) })} className="input font-mono" style={{ maxWidth: 120 }} placeholder="77001" autoComplete="postal-code" inputMode="numeric" />
+          <input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value.replace(/\D/g, "").slice(0, 5) })} className="input font-mono" style={{ maxWidth: 120 }} placeholder="Enter Billing ZIP" autoComplete="postal-code" inputMode="numeric" />
         </Field>
 
         {error && (

@@ -351,7 +351,7 @@ function TemplateModal({
           </div>
         )}
         <Field label="Template Name" required error={errors.name}>
-          <input value={name} onChange={(e) => { setName(e.target.value.replace(/^\s+/, "")); setErrors((x) => ({ ...x, name: "" })); }} className="input" maxLength={150} placeholder="e.g. Friendly invitation" autoFocus />
+          <input value={name} onChange={(e) => { setName(e.target.value.replace(/^\s+/, "")); setErrors((x) => ({ ...x, name: "" })); }} className="input" maxLength={150} placeholder="Enter Template Name" autoFocus />
         </Field>
         <Field label="Subject" required error={errors.subject}>
           <input
@@ -361,7 +361,7 @@ function TemplateModal({
             onChange={(e) => { setSubject(e.target.value); setErrors((x) => ({ ...x, subject: "" })); }}
             className="input"
             maxLength={255}
-            placeholder="e.g. {{organization_name}}: please complete your profile"
+            placeholder="Enter Subject"
           />
         </Field>
         <div>
@@ -390,7 +390,7 @@ function TemplateModal({
             className="input font-mono text-xs"
             rows={11}
             maxLength={10000}
-            placeholder={"Hi {{provider_first_name}},\n\n..."}
+            placeholder="Enter Message"
           />
         </Field>
         <div>

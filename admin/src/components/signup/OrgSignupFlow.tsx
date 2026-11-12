@@ -251,7 +251,7 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
               <div className="space-y-3">
                 <div>
                   <label className="label">Organization Name<RequiredMark /></label>
-                  <input value={data.orgName} onChange={(e) => { set("orgName", e.target.value); setErrors((er) => ({ ...er, orgName: undefined })); }} className={"input" + (errors.orgName || nameTaken ? " input-error" : "")} placeholder="ACME Medical Group, P.A." maxLength={200} />
+                  <input value={data.orgName} onChange={(e) => { set("orgName", e.target.value); setErrors((er) => ({ ...er, orgName: undefined })); }} className={"input" + (errors.orgName || nameTaken ? " input-error" : "")} placeholder="Enter Organization Name" maxLength={200} />
                   <Err msg={errors.orgName || nameTaken} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -264,18 +264,18 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
                   </div>
                   <div>
                     <label className="label">Tax ID (EIN)<RequiredMark /></label>
-                    <input value={data.taxId} onChange={(e) => set("taxId", e.target.value.replace(/\D/g, "").slice(0, 9))} className={"input font-mono" + (errors.taxId ? " input-error" : "")} placeholder="9 digits" />
+                    <input value={data.taxId} onChange={(e) => set("taxId", e.target.value.replace(/\D/g, "").slice(0, 9))} className={"input font-mono" + (errors.taxId ? " input-error" : "")} placeholder="Enter Tax ID (EIN)" />
                     <Err msg={errors.taxId} />
                   </div>
                 </div>
                 <div>
                   <label className="label">Website</label>
-                  <input value={data.website} onChange={(e) => set("website", e.target.value)} className="input" placeholder="https://acmemedical.com" />
+                  <input value={data.website} onChange={(e) => set("website", e.target.value)} className="input" placeholder="Enter Website" />
                   <Err msg={errors.website} />
                 </div>
                 <div>
                   <label className="label">Address</label>
-                  <input value={data.address} onChange={(e) => set("address", e.target.value)} className="input" placeholder="123 Main St, Suite 100" />
+                  <input value={data.address} onChange={(e) => set("address", e.target.value)} className="input" placeholder="Enter Address" />
                   <Err msg={errors.address} />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -325,7 +325,7 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
                 </div>
                 <div>
                   <label className="label">Email<RequiredMark /></label>
-                  <input type="email" value={data.email} onChange={(e) => set("email", e.target.value)} className={"input" + (errors.email ? " input-error" : "")} placeholder="you@yourcompany.com" autoComplete="email" />
+                  <input type="email" value={data.email} onChange={(e) => set("email", e.target.value)} className={"input" + (errors.email ? " input-error" : "")} placeholder="Enter Email" autoComplete="email" />
                   <div className="text-[10px] text-ink-faint mt-1">This will be your username</div>
                   <Err msg={errors.email || emailTaken} />
                 </div>
@@ -337,7 +337,7 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label">Password<RequiredMark /></label>
-                    <PasswordInput value={data.password} onChange={(e) => set("password", e.target.value)} className={"input" + (errors.password ? " input-error" : "")} placeholder="At least 8 characters" autoComplete="new-password" />
+                    <PasswordInput value={data.password} onChange={(e) => set("password", e.target.value)} className={"input" + (errors.password ? " input-error" : "")} placeholder="Enter Password" autoComplete="new-password" />
                     <Err msg={errors.password} />
                   </div>
                   <div>
@@ -425,7 +425,7 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
                     value={data.cardNumber}
                     onChange={(e) => set("cardNumber", e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})/g, "$1 ").trim())}
                     className={"input font-mono" + (errors.cardNumber ? " input-error" : "")}
-                    placeholder="1234 5678 9012 3456"
+                    placeholder="Enter Card Number"
                     autoComplete="cc-number"
                     inputMode="numeric"
                   />
@@ -444,7 +444,7 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
                         set("cardExp", v.length <= 2 ? v : v.slice(0, 2) + "/" + v.slice(2));
                       }}
                       className={"input font-mono" + (errors.cardExp ? " input-error" : "")}
-                      placeholder="12/27"
+                      placeholder="Enter Exp (MM/YY)"
                       autoComplete="cc-exp"
                       inputMode="numeric"
                     />
@@ -452,7 +452,7 @@ export function OrgSignupFlow({ embedded }: { embedded?: EmbeddedSignup } = {}) 
                   </div>
                   <div>
                     <label className="label">CVC<RequiredMark /></label>
-                    <input value={data.cardCvc} onChange={(e) => set("cardCvc", e.target.value.replace(/\D/g, "").slice(0, 4))} className={"input font-mono" + (errors.cardCvc ? " input-error" : "")} placeholder="123" autoComplete="cc-csc" inputMode="numeric" />
+                    <input value={data.cardCvc} onChange={(e) => set("cardCvc", e.target.value.replace(/\D/g, "").slice(0, 4))} className={"input font-mono" + (errors.cardCvc ? " input-error" : "")} placeholder="Enter CVC" autoComplete="cc-csc" inputMode="numeric" />
                     <Err msg={errors.cardCvc} />
                   </div>
                 </div>

@@ -210,7 +210,7 @@ export function AddMoreDocumentModal({ providerId, replace, onClose, onSaved }: 
             onChange={(e) => set("docType", e.target.value.replace(/^\s+/, ""))}
             className="input"
             maxLength={150}
-            placeholder="Document name"
+            placeholder="Enter Document Type"
             aria-label="Document Type"
             autoComplete="off"
           />

@@ -50,7 +50,7 @@ export function CredentialEditModal({
         </div>
         <div>
           <label className="label">Notes (optional)</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={2} placeholder="e.g. Security question answer, account manager name" />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={2} placeholder="Enter Notes" />
         </div>
         {payer.portalUrl && (
           <div className="text-[10px] text-ink-faint p-2 rounded" style={{ background: "var(--bg-soft)" }}>

@@ -342,10 +342,10 @@ export function FollowUpWidget({ providerId, providerName }: { providerId: numbe
               </Select>
             </Field>
             <Field label="Subject" error={errors.subject}>
-              <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="input" placeholder="e.g. Discussed DEA renewal timeline" maxLength={255} />
+              <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="input" placeholder="Enter Subject" maxLength={255} />
             </Field>
             <Field label="Outcome / Notes" error={errors.outcome}>
-              <textarea value={form.outcome} onChange={(e) => setForm({ ...form, outcome: e.target.value })} className="input" rows={3} placeholder="What was discussed and decided" />
+              <textarea value={form.outcome} onChange={(e) => setForm({ ...form, outcome: e.target.value })} className="input" rows={3} placeholder="Enter Outcome / Notes" />
             </Field>
             <Field label="Schedule Next Follow-up (optional)" error={errors.nextDate} hint="If set, a follow-up task will be created for that date.">
               <input type="date" value={form.nextDate} min={todayISO()} onChange={(e) => setForm({ ...form, nextDate: e.target.value })} className="input" />

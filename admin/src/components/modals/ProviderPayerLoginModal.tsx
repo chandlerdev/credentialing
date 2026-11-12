@@ -105,8 +105,6 @@ function LoginForm({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const nameParts = providerName.split(",")[0].trim().split(/\s+/);
-  const placeholder = (nameParts[0] || "first").toLowerCase() + "." + (nameParts.length > 1 ? nameParts[nameParts.length - 1] : "last").toLowerCase();
   const canSave = !!username.trim() && (!!password || !!existing?.hasPassword);
 
   const toggleShow = async () => {
@@ -178,7 +176,7 @@ function LoginForm({
           <Avatar name={providerName} size={32} />
         </div>
         <Field label="Portal Username / Email *" error={errors.username}>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} className="input font-mono" autoFocus placeholder={placeholder} maxLength={150} />
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="input font-mono" autoFocus maxLength={150} />
         </Field>
         <Field label={existing?.hasPassword ? "Password" : "Password *"} error={errors.password} hint={existing?.hasPassword && !password ? "Leave blank to keep the saved password" : undefined}>
           <div className="flex gap-2">
@@ -196,10 +194,10 @@ function LoginForm({
           </div>
         </Field>
         <Field label="Provider ID (with payer)" error={errors.payerProviderId} hint="The ID this payer assigned to the provider">
-          <input value={payerProviderId} onChange={(e) => setPayerProviderId(e.target.value.replace(/[^A-Za-z0-9-]/g, ""))} className="input font-mono" placeholder="e.g. 1234567" maxLength={60} />
+          <input value={payerProviderId} onChange={(e) => setPayerProviderId(e.target.value.replace(/[^A-Za-z0-9-]/g, ""))} className="input font-mono" placeholder="Enter Provider ID" maxLength={60} />
         </Field>
         <Field label="Notes (optional)" error={errors.notes}>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={2} placeholder="Account manager, security questions, etc." maxLength={1000} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={2} placeholder="Enter Notes" maxLength={1000} />
         </Field>
         {formError && <AlertBox>{formError}</AlertBox>}
         <div className="flex justify-between gap-2 pt-3 border-t border-line">

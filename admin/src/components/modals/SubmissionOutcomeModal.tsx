@@ -55,10 +55,10 @@ export function SubmissionOutcomeModal({ submission, onSaved, onClose }: { submi
           </Select>
         </Field>
         <Field label="Confirmation Number" error={errors.confirmationNumber}>
-          <input className="input font-mono" value={form.confirmationNumber || ""} onChange={(e) => setForm({ ...form, confirmationNumber: e.target.value })} placeholder="e.g. CONF-1234567" />
+          <input className="input font-mono" value={form.confirmationNumber || ""} onChange={(e) => setForm({ ...form, confirmationNumber: e.target.value })} placeholder="Enter Confirmation Number" />
         </Field>
         <Field label="Message" error={errors.message}>
-          <textarea className="input" rows={2} value={form.message || ""} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Portal reference, rejection reason, etc." />
+          <textarea className="input" rows={2} value={form.message || ""} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Enter Message" />
         </Field>
         {submission.enrollmentId && form.status === "submitted" && (
           <div className="text-[11px] text-ink-light p-2 rounded" style={{ background: "var(--bg-soft)" }}>

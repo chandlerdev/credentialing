@@ -136,7 +136,7 @@ export function ForgotPasswordModal({ onClose, onDone }: { onClose: () => void; 
               }}
               onKeyDown={(e) => e.key === "Enter" && sendCode()}
               className="input"
-              placeholder="you@company.com"
+              placeholder="Enter Email"
               autoFocus
               autoComplete="email"
             />
@@ -160,7 +160,7 @@ export function ForgotPasswordModal({ onClose, onDone }: { onClose: () => void; 
                 onKeyDown={(e) => e.key === "Enter" && verify()}
                 className="input font-mono text-center tracking-[0.5em] text-lg"
                 inputMode="numeric"
-                placeholder="••••••"
+                placeholder="Enter 6-digit code"
                 autoFocus
                 autoComplete="one-time-code"
               />

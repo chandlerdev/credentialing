@@ -309,7 +309,7 @@ export function ProviderForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="NPI" error={err("npi")} hint={selfService ? LOCKED_HINT : undefined}>
-            <input value={form.npi} onChange={(e) => set("npi", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="10 digits" inputMode="numeric" disabled={selfService} />
+            <input value={form.npi} onChange={(e) => set("npi", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="Enter NPI" inputMode="numeric" disabled={selfService} />
           </Field>
           <SpecialtyField
             choice={form.specialty}
@@ -354,7 +354,7 @@ export function ProviderForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="DEA Number" error={err("deaNumber")}>
-            <input value={form.deaNumber} onChange={(e) => set("deaNumber", e.target.value.toUpperCase())} className="input font-mono" maxLength={20} placeholder="(optional for mid-levels)" />
+            <input value={form.deaNumber} onChange={(e) => set("deaNumber", e.target.value.toUpperCase())} className="input font-mono" maxLength={20} placeholder="Enter DEA Number" />
           </Field>
           <Field label="DEA Expiration" error={err("deaExpires")}>
             <input type="date" min={todayISO()} value={form.deaExpires} onChange={(e) => set("deaExpires", e.target.value)} className="input" />
@@ -369,7 +369,7 @@ export function ProviderForm({
               value={form.caqhId}
               onChange={(e) => set("caqhId", e.target.value.replace(/\D/g, "").slice(0, 10))}
               className="input font-mono"
-              placeholder="8 digits"
+              placeholder="Enter CAQH Number"
               inputMode="numeric"
               disabled={lockCaqhId}
             />
@@ -436,7 +436,7 @@ export function ProviderForm({
           {withLogin && (
             <>
               <Field label="Password *" error={err("password")} hint="Sign-in: the email + this password">
-                <PasswordInput value={form.password} onChange={(e) => set("password", e.target.value)} className="input" autoComplete="new-password" placeholder="At least 8 characters" />
+                <PasswordInput value={form.password} onChange={(e) => set("password", e.target.value)} className="input" autoComplete="new-password" placeholder="Enter Password" />
               </Field>
               <Field label="Confirm Password *" error={err("confirmPassword")}>
                 <PasswordInput value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className="input" autoComplete="new-password" />
@@ -450,7 +450,7 @@ export function ProviderForm({
                 error={err("password")}
                 hint={changePassword.hasLogin ? "Leave blank to keep the current password" : "No sign-in yet — a password lets the provider sign in with their email"}
               >
-                <PasswordInput value={form.password} onChange={(e) => set("password", e.target.value)} className="input" autoComplete="new-password" placeholder="New password" />
+                <PasswordInput value={form.password} onChange={(e) => set("password", e.target.value)} className="input" autoComplete="new-password" placeholder="Enter New Password" />
               </Field>
             </div>
           )}

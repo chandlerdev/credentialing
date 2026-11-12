@@ -13,7 +13,7 @@ export function PhoneInput({
   disabled = false,
   id,
   autoComplete = "tel-national",
-  placeholder = "10 digits",
+  placeholder = "Enter Ph.No",
 }: {
   value: string;
   onChange: (value: string) => void;

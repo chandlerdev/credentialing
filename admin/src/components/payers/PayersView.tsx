@@ -7,6 +7,7 @@ import { PayerLogo } from "./PayerLogo";
 import { matchesSearch } from "@/lib/search";
 import { cleanSearch } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
+import { ConfirmDialog } from "@/components/Modal";
 import { ErrorState, Loading } from "@/components/AsyncState";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
@@ -62,6 +63,8 @@ export function PayersView() {
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [assigningAll, setAssigningAll] = useState(false);
 
   const rows = useAsync(loadPayerRows, []);
   const providers = useProvidersLite();
@@ -97,6 +100,28 @@ export function PayersView() {
     } finally {
       setBusy(null);
     }
+  };
+  // every enabled payer the provider doesn't have yet
+  const unassignedPayers = selectedProvider && assignmentsReady ? payers.filter((p) => !assigned.has(p.id)) : [];
+  const assignAll = async () => {
+    if (!selectedProvider || !assignmentsReady || unassignedPayers.length === 0) return;
+    setAssigningAll(true);
+    let done = 0;
+    const failed: string[] = [];
+    for (const p of unassignedPayers) {
+      try {
+        await api.post("/payer-workflows/assignments", { providerId: selectedProvider.id, payerId: p.id });
+        done++;
+      } catch {
+        failed.push(p.name);
+      }
+    }
+    setAssigningAll(false);
+    setConfirmAll(false);
+    if (failed.length) toast(done + " assigned, " + failed.length + " failed: " + failed.join(", "), "error");
+    else toast(done + " payer(s) assigned to " + providerName(selectedProvider));
+    assignments.reload();
+    publish("enrollments");
   };
   const unassign = async (p: Payer) => {
     if (!selectedProvider || !assignmentsReady) return;
@@ -180,11 +205,35 @@ export function PayersView() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="mb-4 relative w-full">
-        <Icon name="Search" size={14} className="absolute" style={{ left: 10, top: 10, color: "var(--ink-faint)" }} />
-        <input value={search} onChange={(e) => setSearch(cleanSearch(e.target.value))} placeholder="Search payers..." className="input" style={{ paddingLeft: 32 }} />
+      {/* Search + Assign all enabled payers */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1" style={{ minWidth: 220 }}>
+          <Icon name="Search" size={14} className="absolute" style={{ left: 10, top: 10, color: "var(--ink-faint)" }} />
+          <input value={search} onChange={(e) => setSearch(cleanSearch(e.target.value))} placeholder="Search payers..." className="input" style={{ paddingLeft: 32 }} aria-label="Search payers" />
+        </div>
+        {canAssign && (
+          <button
+            className="btn btn-primary"
+            onClick={() => setConfirmAll(true)}
+            disabled={!selectedProvider || !assignmentsReady || unassignedPayers.length === 0 || assigningAll}
+            title={!selectedProvider ? "Choose a provider first" : unassignedPayers.length === 0 ? "Every enabled payer is already assigned" : undefined}
+            data-assign-all
+          >
+            {assigningAll ? <span className="loader" style={{ borderTopColor: "white" }} /> : <Icon name="ListChecks" size={13} />} Assign all enabled payers
+            {selectedProvider && unassignedPayers.length > 0 ? " (" + unassignedPayers.length + ")" : ""}
+          </button>
+        )}
       </div>
+      {confirmAll && selectedProvider && (
+        <ConfirmDialog
+          title="Assign all enabled payers"
+          message={"Assign the " + unassignedPayers.length + " enabled payer(s) not assigned yet to " + providerName(selectedProvider) + "? Each gets an enrollment and appears in Payer Submission."}
+          confirmLabel="Assign all"
+          busy={assigningAll}
+          onConfirm={assignAll}
+          onClose={() => !assigningAll && setConfirmAll(false)}
+        />
+      )}
 
       {rows.error ? (
         <ErrorState message={rows.error} onRetry={rows.reload} />

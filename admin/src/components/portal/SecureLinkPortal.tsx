@@ -337,7 +337,7 @@ export function SecureLinkPortal({ token }: { token: string }) {
                 }}
                 className="input font-mono text-center tracking-widest"
                 style={{ fontSize: 22, letterSpacing: 8 }}
-                placeholder="000000"
+                placeholder="Enter 6-digit PIN"
                 maxLength={6}
                 inputMode="numeric"
                 autoComplete="one-time-code"
@@ -572,7 +572,7 @@ function ProfileForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="NPI" error={errors.npi}>
-            <input value={profile.npi} onChange={(e) => set("npi", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="10 digits" inputMode="numeric" />
+            <input value={profile.npi} onChange={(e) => set("npi", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="Enter NPI" inputMode="numeric" />
           </Field>
           <SpecialtyField
             choice={profile.specialty}
@@ -613,7 +613,7 @@ function ProfileForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="DEA Number" error={errors.deaNumber}>
-            <input value={profile.deaNumber} onChange={(e) => set("deaNumber", e.target.value.toUpperCase())} className="input font-mono" maxLength={20} placeholder="(optional for mid-levels)" />
+            <input value={profile.deaNumber} onChange={(e) => set("deaNumber", e.target.value.toUpperCase())} className="input font-mono" maxLength={20} placeholder="Enter DEA Number" />
           </Field>
           <Field label="DEA Expiration" error={errors.deaExpires}>
             <input type="date" min={todayISO()} value={profile.deaExpires} onChange={(e) => set("deaExpires", e.target.value)} className="input" />
@@ -624,7 +624,7 @@ function ProfileForm({
       <FormSection icon="Database" title="CAQH">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="CAQH Number" error={errors.caqhId}>
-            <input value={profile.caqhId} onChange={(e) => set("caqhId", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="8 digits" inputMode="numeric" />
+            <input value={profile.caqhId} onChange={(e) => set("caqhId", e.target.value.replace(/\D/g, "").slice(0, 10))} className="input font-mono" placeholder="Enter CAQH Number" inputMode="numeric" />
           </Field>
           <Field label="CAQH User ID" error={errors.caqhUsername}>
             <input value={profile.caqhUsername} onChange={(e) => set("caqhUsername", e.target.value.replace(/\s/g, ""))} className="input font-mono" maxLength={100} autoComplete="off" />
@@ -666,7 +666,7 @@ function ProfileForm({
           {loginEmail != null && (
             <>
               <Field label="Password" required error={errors.password || (profile.password && profile.password.length < 8 ? "At least 8 characters" : undefined)} hint={"Sign-in: " + loginEmail + " + this password"}>
-                <PasswordInput value={profile.password} onChange={(e) => set("password", e.target.value)} className="input" maxLength={100} autoComplete="new-password" placeholder="At least 8 characters" />
+                <PasswordInput value={profile.password} onChange={(e) => set("password", e.target.value)} className="input" maxLength={100} autoComplete="new-password" placeholder="Enter Password" />
               </Field>
               <Field label="Confirm Password" required error={errors.confirmPassword || (profile.confirmPassword && profile.confirmPassword !== profile.password ? "Passwords do not match" : undefined)}>
                 <PasswordInput value={profile.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className="input" maxLength={100} autoComplete="new-password" />

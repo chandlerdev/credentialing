@@ -115,7 +115,7 @@ export function EditPracticeModal({
           <input value={name} onChange={(e) => setName(e.target.value)} className="input" autoFocus maxLength={200} />
         </Field>
         <Field label="Tax ID (EIN)" error={errors.taxId} hint="Letters and digits, 5-20 characters">
-          <input value={taxId} onChange={(e) => setTaxId(taxIdChars(e.target.value))} className="input font-mono" placeholder="e.g. 12-3456789 or TX12AB345" />
+          <input value={taxId} onChange={(e) => setTaxId(taxIdChars(e.target.value))} className="input font-mono" placeholder="Enter Tax ID (EIN)" />
         </Field>
         <PracticeContactFields
           address={address}
@@ -153,14 +153,14 @@ function PracticeContactFields({
   return (
     <>
       <Field label="Address" error={errors.address}>
-        <input value={address} onChange={(e) => onChange("address", addressChars(e.target.value))} className="input" placeholder="e.g. 30 Pearly Lane, Gardner, MA 01440" />
+        <input value={address} onChange={(e) => onChange("address", addressChars(e.target.value))} className="input" placeholder="Enter Address" />
       </Field>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Ph.No" error={errors.phone}>
           <PhoneInput value={phone} onChange={(v) => onChange("phone", v)} invalid={!!errors.phone} />
         </Field>
         <Field label="Email" error={errors.email}>
-          <input type="email" value={email} onChange={(e) => onChange("email", e.target.value.trim())} className="input" maxLength={255} placeholder="info@practice.com" />
+          <input type="email" value={email} onChange={(e) => onChange("email", e.target.value.trim())} className="input" maxLength={255} placeholder="Enter Email" />
         </Field>
       </div>
     </>
@@ -214,13 +214,13 @@ export function EditLocationModal({ location, onClose, onSaved }: { location: Lo
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" maxLength={150} />
         </Field>
         <Field label="Legal Name" error={errors.legalName}>
-          <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="input" maxLength={200} placeholder="LLC / INC name" />
+          <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="input" maxLength={200} placeholder="Enter Legal Name" />
         </Field>
         <Field label="NPI" error={errors.npi}>
-          <input value={form.npi} onChange={(e) => setForm({ ...form, npi: digitsOnly(e.target.value, 10) })} className="input font-mono" inputMode="numeric" placeholder="10 digits" />
+          <input value={form.npi} onChange={(e) => setForm({ ...form, npi: digitsOnly(e.target.value, 10) })} className="input font-mono" inputMode="numeric" placeholder="Enter NPI" />
         </Field>
         <Field label="Address" error={errors.address}>
-          <input value={form.address} onChange={(e) => setForm({ ...form, address: addressChars(e.target.value) })} className="input" placeholder="e.g. 30 Pearly Lane, Gardner, MA 01440" />
+          <input value={form.address} onChange={(e) => setForm({ ...form, address: addressChars(e.target.value) })} className="input" placeholder="Enter Address" />
         </Field>
         <Field label="Ph.No" error={errors.phone}>
           <PhoneInput value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} invalid={!!errors.phone} />
@@ -396,7 +396,7 @@ export function AddPracticeLocationModal({
         {type === "practice" && (
           <>
             <Field label="Tax ID" error={errors.taxId} hint="Letters and digits, 5-20 characters">
-              <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: taxIdChars(e.target.value) })} className="input font-mono" placeholder="e.g. 12-3456789 or TX12AB345" />
+              <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: taxIdChars(e.target.value) })} className="input font-mono" placeholder="Enter Tax ID" />
             </Field>
             <Field label="Organization">
               <input value={organizationName} className="input" disabled aria-label="Organization" data-practice-org />
@@ -423,13 +423,13 @@ export function AddPracticeLocationModal({
               </Select>
             </Field>
             <Field label="Legal Name" error={errors.legalName}>
-              <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="input" maxLength={200} placeholder="LLC / INC name" />
+              <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="input" maxLength={200} placeholder="Enter Legal Name" />
             </Field>
             <Field label="NPI" error={errors.npi}>
-              <input value={form.npi} onChange={(e) => setForm({ ...form, npi: digitsOnly(e.target.value, 10) })} className="input font-mono" inputMode="numeric" placeholder="10 digits" />
+              <input value={form.npi} onChange={(e) => setForm({ ...form, npi: digitsOnly(e.target.value, 10) })} className="input font-mono" inputMode="numeric" placeholder="Enter NPI" />
             </Field>
             <Field label="Address" error={errors.address}>
-              <input value={form.address} onChange={(e) => setForm({ ...form, address: addressChars(e.target.value) })} className="input" placeholder="e.g. 30 Pearly Lane, Gardner, MA 01440" />
+              <input value={form.address} onChange={(e) => setForm({ ...form, address: addressChars(e.target.value) })} className="input" placeholder="Enter Address" />
             </Field>
           </>
         )}

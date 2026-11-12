@@ -43,7 +43,7 @@ export function NewChannelModal({ onCreated, onClose }: { onCreated: (ch: Channe
           <label className="label">Channel Name<RequiredMark /></label>
           <div className="flex items-center gap-2">
             <span className="text-ink-faint">#</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={"input " + (errors.name ? "input-error" : "")} placeholder="e.g. billing, team-updates" autoFocus maxLength={80} />
+            <input value={name} onChange={(e) => setName(e.target.value)} className={"input " + (errors.name ? "input-error" : "")} placeholder="Enter Channel Name" autoFocus maxLength={80} />
           </div>
           {name && normalized !== name && (
             <div className="text-[10px] text-ink-faint mt-1">Will be saved as: <span className="font-mono">#{normalized}</span></div>
@@ -52,7 +52,7 @@ export function NewChannelModal({ onCreated, onClose }: { onCreated: (ch: Channe
         </div>
         <div>
           <label className="label">Description (optional)</label>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} className="input" placeholder="What's this channel for?" maxLength={255} />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} className="input" placeholder="Enter Description" maxLength={255} />
           {errors.description && <div className="field-error">{errors.description}</div>}
         </div>
         <div className="flex justify-end gap-2 pt-3 border-t border-line">

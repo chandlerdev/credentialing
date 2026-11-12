@@ -244,7 +244,7 @@ export function LocationFormModal({ location, practices, onSaved, onClose }: { l
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Name *" error={errors.name}>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="e.g. Downtown Clinic" maxLength={150} />
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="Enter Name" maxLength={150} />
           </Field>
           <Field label="Type" error={errors.locationType}>
             <Select value={form.locationType} onChange={(e) => setForm({ ...form, locationType: e.target.value as LocationType })} className="input">
@@ -271,14 +271,14 @@ export function LocationFormModal({ location, practices, onSaved, onClose }: { l
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Legal Name" error={errors.legalName}>
-            <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="input" placeholder="LLC / INC name" maxLength={200} />
+            <input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="input" placeholder="Enter Legal Name" maxLength={200} />
           </Field>
           <Field label="Location NPI" error={errors.npi}>
-            <input value={form.npi} onChange={(e) => setForm({ ...form, npi: digitsOnly(e.target.value, 10) })} className="input font-mono" inputMode="numeric" placeholder="10 digits" />
+            <input value={form.npi} onChange={(e) => setForm({ ...form, npi: digitsOnly(e.target.value, 10) })} className="input font-mono" inputMode="numeric" placeholder="Enter Location NPI" />
           </Field>
         </div>
         <Field label="Address *" error={errors.address}>
-          <input value={form.address} onChange={(e) => setForm({ ...form, address: addressChars(e.target.value) })} className="input" placeholder="e.g. 1200 Main Street, Suite 4" />
+          <input value={form.address} onChange={(e) => setForm({ ...form, address: addressChars(e.target.value) })} className="input" placeholder="Enter Address" />
         </Field>
         <div className="grid grid-cols-3 gap-3">
           <Field label="State" error={errors.state}>
@@ -288,7 +288,7 @@ export function LocationFormModal({ location, practices, onSaved, onClose }: { l
             <CitySelect state={form.state || ""} value={form.city || ""} onChange={(v) => setForm({ ...form, city: v })} invalid={!!errors.city} />
           </Field>
           <Field label="ZIP *" error={errors.zip}>
-            <input value={form.zip} onChange={(e) => setForm({ ...form, zip: digitsOnly(e.target.value, 5) })} className="input font-mono" inputMode="numeric" placeholder="5 digits" />
+            <input value={form.zip} onChange={(e) => setForm({ ...form, zip: digitsOnly(e.target.value, 5) })} className="input font-mono" inputMode="numeric" placeholder="Enter ZIP" />
           </Field>
         </div>
         <Field label="Ph.No" error={errors.phone}>

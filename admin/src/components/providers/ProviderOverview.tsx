@@ -571,7 +571,7 @@ function PrimarySourceVerification({ provider }: { provider: ProviderDetail }) {
                         className="input"
                         rows={2}
                         maxLength={500}
-                        placeholder="Source checked, reference number, findings…"
+                        placeholder="Enter Notes"
                       />
                     </Field>
                     <div className="flex justify-end gap-2">

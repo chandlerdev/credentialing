@@ -49,7 +49,7 @@ export function RuleEditorModal({ rule, onClose, onSaved }: { rule: RuleDraft; o
     <Modal title={isEdit ? "Edit Reminder Rule" : "Add Reminder Rule"} onClose={onClose} maxWidth={520}>
       <div className="space-y-3">
         <Field label="Rule Name" error={errors.name}>
-          <input value={form.name} maxLength={100} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="e.g. First heads-up" />
+          <input value={form.name} maxLength={100} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="Enter Rule Name" />
         </Field>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Trigger (days before due)" error={errors.daysBefore} hint="Negative = days after expiry">

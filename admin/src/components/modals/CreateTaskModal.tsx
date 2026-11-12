@@ -56,7 +56,7 @@ export function CreateTaskModal({ onClose, onCreated, defaultProviderId }: { onC
     <Modal title="Create Task" subtitle="Track a credentialing task with priority and due date." onClose={onClose} maxWidth={560}>
       <div className="space-y-3">
         <Field label="Title" error={errors.title}>
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={"input " + (errors.title ? "input-error" : "")} placeholder="e.g. Follow up with Aetna on Rizzo enrollment" autoFocus />
+          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={"input " + (errors.title ? "input-error" : "")} placeholder="Enter Title" autoFocus />
         </Field>
         <Field label="Description" error={errors.description}>
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" rows={3} />

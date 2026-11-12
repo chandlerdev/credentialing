@@ -213,7 +213,7 @@ function Address({ f, set, errors, prefix, publicToken }: SectionProps & { prefi
         <Field label="City" error={errors[k("City")]}>
           <CitySelect state={f[k("State")]} value={f[k("City")]} onChange={(v) => set(k("City"), v)} publicToken={publicToken} />
         </Field>
-        <Text f={f} set={set} errors={errors} k={k("Zip")} label="ZIP" max={10} mono digits={10} placeholder="5 or 9 digits" />
+        <Text f={f} set={set} errors={errors} k={k("Zip")} label="ZIP" max={10} mono digits={10} placeholder="Enter ZIP" />
       </div>
     </>
   );
@@ -224,8 +224,8 @@ export function GroupRow(p: SectionProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <Text {...p} k="groupName" label="Group Name" max={200} />
-      <Text {...p} k="groupNpi" label="Group NPI" mono digits={10} placeholder="10 digits" />
-      <Text {...p} k="taxId" label="Tax ID" mono digits={10} placeholder="9 digits" />
+      <Text {...p} k="groupNpi" label="Group NPI" mono digits={10} placeholder="Enter Group NPI" />
+      <Text {...p} k="taxId" label="Tax ID" mono digits={10} placeholder="Enter Tax ID" />
     </div>
   );
 }
@@ -241,7 +241,7 @@ export function PersonalRow({ hasSsn, ssnLast4, ...p }: SectionProps & { hasSsn?
           onChange={(e) => p.set("ssn", e.target.value.replace(/[^\d-]/g, "").slice(0, 11))}
           className="input font-mono"
           autoComplete="off"
-          placeholder={hasSsn ? "•••-••-" + (ssnLast4 || "••••") : "9 digits"}
+          placeholder={hasSsn ? "•••-••-" + (ssnLast4 || "••••") : "Enter SSN"}
         />
       </Field>
       <Phone {...p} k="medicarePhone" label="Ph.No Listed in Medicare" />
@@ -297,14 +297,14 @@ export function PracticeSection(p: SectionProps) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Phone {...p} k="practicePhone" label="Practice Ph.No" />
-        <Text {...p} k="practiceFax" label="Practice Fax Number" max={10} mono digits={10} placeholder="10 digits" />
+        <Text {...p} k="practiceFax" label="Practice Fax Number" max={10} mono digits={10} placeholder="Enter Practice Fax Number" />
         <Text {...p} k="practiceEmail" label="Practice Email" max={255} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Date Started Practice at This Address" error={p.errors.practiceStartDate}>
           <input type="date" max={todayISO()} value={p.f.practiceStartDate} onChange={(e) => p.set("practiceStartDate", e.target.value)} className="input" />
         </Field>
-        <Text {...p} k="officeHours" label="Office Hours" max={255} placeholder="e.g. Mon–Fri 8:00 AM – 5:00 PM" />
+        <Text {...p} k="officeHours" label="Office Hours" max={255} placeholder="Enter Office Hours" />
       </div>
       <Address {...p} prefix="practice" />
     </FormSection>
@@ -318,7 +318,7 @@ export function BillingSection(p: SectionProps) {
       <Text {...p} k="billingContactPerson" label="Billing Contact Person" max={150} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Phone {...p} k="billingPhone" label="Billing Ph.No" />
-        <Text {...p} k="billingFax" label="Billing Fax Number" max={10} mono digits={10} placeholder="10 digits" />
+        <Text {...p} k="billingFax" label="Billing Fax Number" max={10} mono digits={10} placeholder="Enter Billing Fax Number" />
         <Text {...p} k="billingEmail" label="Billing Email" max={255} />
       </div>
       <Address {...p} prefix="billing" />
@@ -398,7 +398,7 @@ export function SpecialtyField({
       </Field>
       {choice === OTHER && (
         <Field label={required ? "Other Specialty *" : "Other Specialty"} error={otherError}>
-          <input value={other} onChange={(e) => onChange(OTHER, e.target.value)} className="input" maxLength={120} placeholder="Type the specialty" aria-label="Other Specialty" autoFocus />
+          <input value={other} onChange={(e) => onChange(OTHER, e.target.value)} className="input" maxLength={120} placeholder="Enter Other Specialty" aria-label="Other Specialty" autoFocus />
         </Field>
       )}
     </>

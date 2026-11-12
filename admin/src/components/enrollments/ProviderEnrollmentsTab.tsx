@@ -606,7 +606,7 @@ function EnrollmentExpansion({ enrollmentId, canUpdate, onChanged }: { enrollmen
         </div>
         {canUpdate && (
           <div className="flex items-center gap-2 mt-2">
-            <input className="input input-sm flex-1" placeholder="Add a note..." value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} />
+            <input className="input input-sm flex-1" placeholder="Enter Note" value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} />
             <button className="btn btn-secondary text-xs" disabled={noteBusy || !note.trim()} onClick={addNote}>
               {noteBusy ? <span className="loader" /> : <Icon name="Plus" size={11} />} Add
             </button>

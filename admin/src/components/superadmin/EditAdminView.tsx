@@ -312,7 +312,7 @@ export function EditAdminView({ userId, onDone }: { userId: number; onDone: () =
                 value={form.cardNumber}
                 onChange={(e) => set("cardNumber", e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})/g, "$1 ").trim())}
                 className={"input font-mono" + (errors.cardNumber ? " input-error" : "")}
-                placeholder="1234 5678 9012 3456"
+                placeholder="Enter Card Number"
                 inputMode="numeric"
                 autoComplete="off"
                 aria-label="Card Number"
@@ -327,7 +327,7 @@ export function EditAdminView({ userId, onDone }: { userId: number; onDone: () =
                     set("cardExp", v.length <= 2 ? v : v.slice(0, 2) + "/" + v.slice(2));
                   }}
                   className={"input font-mono" + (errors.cardExp ? " input-error" : "")}
-                  placeholder="12/27"
+                  placeholder="Enter Exp (MM/YY)"
                   inputMode="numeric"
                   aria-label="Card Expiry"
                 />

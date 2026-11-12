@@ -187,7 +187,7 @@ function AttestationModal({ item, onClose, onSaved }: { item: CaqhProviderStatus
     <Modal title={enrolling ? "Enroll in CAQH" : "Update CAQH Attestation"} subtitle={item.name} onClose={onClose} maxWidth={520}>
       <div className="space-y-3">
         <Field label="CAQH Provider ID" required={enrolling} error={errors.caqhId} hint={!enrolling ? "Clear the field to remove the CAQH ID" : undefined}>
-          <input value={form.caqhId} onChange={(e) => setForm({ ...form, caqhId: e.target.value })} className="input font-mono" placeholder="e.g. 12345678" />
+          <input value={form.caqhId} onChange={(e) => setForm({ ...form, caqhId: e.target.value })} className="input font-mono" placeholder="Enter CAQH Provider ID" />
         </Field>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Last attested" error={errors.lastAttested} hint="Next attestation is due 120 days later">

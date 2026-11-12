@@ -702,10 +702,10 @@ export function CallModal({ card, onClose, onLogged }: { card: PayerCard; onClos
           </Select>
         </Field>
         <Field label="Rep name / reference">
-          <input value={f.ref} onChange={(e) => set("ref", e.target.value)} className="input" maxLength={120} placeholder="e.g. Jane, ticket #4471" aria-label="Rep name / reference" />
+          <input value={f.ref} onChange={(e) => set("ref", e.target.value)} className="input" maxLength={120} placeholder="Enter Rep name / reference" aria-label="Rep name / reference" />
         </Field>
         <Field label="Notes" required={notesRequired} error={errors.notes}>
-          <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} className={"input" + (errors.notes ? " input-error" : "")} rows={3} maxLength={1500} placeholder="What did they say?" aria-label="Call notes" />
+          <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} className={"input" + (errors.notes ? " input-error" : "")} rows={3} maxLength={1500} placeholder="Enter Notes" aria-label="Call notes" />
         </Field>
         <Field label="Next follow-up date" required={nextRequired} error={errors.nextFollowUp}>
           <input type="date" value={f.nextFollowUp} min={todayISO()} onChange={(e) => set("nextFollowUp", e.target.value)} className={"input" + (errors.nextFollowUp ? " input-error" : "")} aria-label="Next follow-up date" />

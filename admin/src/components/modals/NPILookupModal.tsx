@@ -70,7 +70,7 @@ export function NPILookupModal({ initialNpi, onClose }: { initialNpi?: string; o
           <div className="flex gap-2">
             <input value={npi} onChange={(e) => setNpi(e.target.value.replace(/\D/g, "").slice(0, 10))}
                    onKeyDown={(e) => e.key === "Enter" && lookup()}
-                   className="input font-mono" placeholder="10 digits" maxLength={10} />
+                   className="input font-mono" placeholder="Enter NPI Number" maxLength={10} />
             <button onClick={lookup} disabled={!npi || loading} className="btn btn-primary">
               {loading ? <><span className="loader"></span> Searching...</> : <><Icon name="Search" size={13} /> Lookup</>}
             </button>

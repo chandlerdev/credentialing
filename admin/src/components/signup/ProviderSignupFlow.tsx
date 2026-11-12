@@ -229,7 +229,7 @@ export function ProviderSignupFlow() {
                 </div>
                 <div>
                   <label className="label">Email<RequiredMark /></label>
-                  <input type="email" value={data.email} onChange={(e) => set("email", e.target.value)} className={"input" + (errors.email ? " input-error" : "")} placeholder="you@yourpractice.com" autoComplete="email" />
+                  <input type="email" value={data.email} onChange={(e) => set("email", e.target.value)} className={"input" + (errors.email ? " input-error" : "")} placeholder="Enter Email" autoComplete="email" />
                   <Err msg={errors.email} />
                 </div>
                 <div>
@@ -240,7 +240,7 @@ export function ProviderSignupFlow() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label">Password<RequiredMark /></label>
-                    <PasswordInput value={data.password} onChange={(e) => set("password", e.target.value)} className={"input" + (errors.password ? " input-error" : "")} placeholder="At least 8 characters" autoComplete="new-password" />
+                    <PasswordInput value={data.password} onChange={(e) => set("password", e.target.value)} className={"input" + (errors.password ? " input-error" : "")} placeholder="Enter Password" autoComplete="new-password" />
                     <Err msg={errors.password} />
                   </div>
                   <div>
@@ -268,7 +268,7 @@ export function ProviderSignupFlow() {
                         setNpiNotice(false);
                       }}
                       className={"input font-mono" + (errors.npi ? " input-error" : "")}
-                      placeholder="10 digits"
+                      placeholder="Enter NPI Number"
                       inputMode="numeric"
                     />
                     <button onClick={lookupNpi} disabled={data.npi.length !== 10} className="btn btn-secondary">
@@ -286,7 +286,7 @@ export function ProviderSignupFlow() {
                     <option value="__other__">Other</option>
                   </Select>
                   {data.specialty === "__other__" && (
-                    <input value={otherSpecialty} onChange={(e) => setOtherSpecialty(e.target.value)} className="input mt-2" maxLength={120} placeholder="Type your specialty" aria-label="Other Specialty" />
+                    <input value={otherSpecialty} onChange={(e) => setOtherSpecialty(e.target.value)} className="input mt-2" maxLength={120} placeholder="Enter Other Specialty" aria-label="Other Specialty" />
                   )}
                   <Err msg={errors.specialty} />
                 </div>
@@ -312,7 +312,7 @@ export function ProviderSignupFlow() {
                     setErrors((er) => ({ ...er, organizationCode: undefined }));
                   }}
                   className={"input font-mono" + (errors.organizationCode || codeState.status === "invalid" ? " input-error" : "")}
-                  placeholder="e.g. ZMARTC-A4F2"
+                  placeholder="Enter Organization Invite Code"
                 />
                 <div className="text-[10px] text-ink-faint mt-1">Ask your organization&apos;s admin for this code, or skip and let them add you later</div>
                 {errors.organizationCode ? (

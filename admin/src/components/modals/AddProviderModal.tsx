@@ -298,7 +298,7 @@ function CaqhImportModal({
               setError(null);
             }}
             className="input font-mono"
-            placeholder={mock ? "Try: 10000001" : "e.g. 15454546"}
+            placeholder="Enter CAQH Provider ID"
           />
           {error && (
             <div className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--danger)" }}>

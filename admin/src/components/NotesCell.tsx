@@ -151,7 +151,7 @@ function NotesModal<T>({
               className="input"
               rows={10}
               maxLength={MAX_NOTES}
-              placeholder="e.g. Oct 23 – Called the provider, the renewed license will be sent by Friday."
+              placeholder="Enter Notes"
               autoFocus
               style={{ resize: "vertical", minHeight: 160, lineHeight: 1.5 }}
               aria-label="Notes"

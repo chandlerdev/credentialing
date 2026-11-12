@@ -66,7 +66,7 @@ function AddHospitalModal({ onClose, onCreated }: { onClose: () => void; onCreat
     <Modal title="Add Hospital" subtitle="Hospitals where your providers hold clinical privileges" onClose={onClose} maxWidth={460}>
       <div className="space-y-3">
         <Field label="Hospital name" required error={errors.name}>
-          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Massachusetts General Hospital" autoFocus />
+          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Enter Hospital name" autoFocus />
         </Field>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="State" error={errors.state}>
